@@ -103,3 +103,11 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
 - **Raison** : Spring Boot 4 fournit Jackson 3 (package `tools.jackson`, pas `com.fasterxml`).
   L'intention est stockée en `String` puis convertie via `Intention.fromString` (tolérant à la casse).
   Le prix est **toujours lu en base** (l'IA ne fournit jamais de prix).
+
+### 16. Webhook Chatwoot : signature et asynchronisme
+- **Choix** : vérification HMAC-SHA256 via l'en-tête `X-Chatwoot-Signature` (secret partagé
+  `CHATWOOT_WEBHOOK_SECRET`), idempotence via `evenements_traites`, filtrage des messages sortants
+  et notes privées, bascule IA→HUMAIN sur réponse d'un agent. Traitement asynchrone via le
+  `TaskExecutor` (threads virtuels Java 25).
+- **Raison** : répondre 200 rapidement à Chatwoot puis traiter hors-ligne. Le nom exact de
+  l'en-tête Chatwoot sera validé dans `docs/CHATWOOT_SETUP.md`.

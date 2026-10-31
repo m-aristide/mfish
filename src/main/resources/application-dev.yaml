@@ -21,3 +21,5 @@ app:
     secret: dev-only-secret-change-me-0123456789abcdef0123456789
   admin:
     password-hash: "{noop}admin123"
+  chatwoot:
+    webhook-secret: dev-webhook-secret
