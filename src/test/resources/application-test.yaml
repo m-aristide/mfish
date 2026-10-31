@@ -1,0 +1,22 @@
+# Profil de test : la base vient de Testcontainers (@ServiceConnection), aucun secret reel.
+app:
+  timezone: Africa/Abidjan
+  jwt:
+    secret: test-secret-test-secret-test-secret-0123456789
+  admin:
+    password-hash: "{noop}test"
+  chatwoot:
+    base-url: http://localhost:0
+    api-token: test-chatwoot-token
+    account-id: "1"
+    webhook-secret: test-webhook-secret
+  deepseek:
+    api-key: test-deepseek-key
+  routexl:
+    username: test-user
+    password: test-password
+
+spring:
+  threads:
+    virtual:
+      enabled: false
