@@ -5,9 +5,13 @@ import com.mfish.erp.client.ClientRepository;
 import com.mfish.erp.commun.NotFoundException;
 import com.mfish.erp.produit.Produit;
 import com.mfish.erp.produit.ProduitRepository;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +40,19 @@ public class CommandeApplicationService {
 
     public List<CommandeDto> lister() {
         return commandeRepository.findAll().stream().map(CommandeDto::from).toList();
+    }
+
+    public List<CommandeDto> listerParClient(final UUID clientId) {
+        return commandeRepository.findByClientId(clientId).stream().map(CommandeDto::from).toList();
+    }
+
+    public Page<CommandeDto> rechercher(final StatutCommande statut, final LocalDate date,
+                                        final UUID quartierId, final String recherche,
+                                        final Pageable pageable) {
+        final Page<Commande> page = commandeRepository.rechercher(statut, date, quartierId,
+                recherche, pageable);
+        return new PageImpl<>(page.getContent().stream().map(CommandeDto::from).toList(),
+                pageable, page.getTotalElements());
     }
 
     public CommandeDto trouver(final UUID id) {

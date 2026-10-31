@@ -14,12 +14,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
  * Gestion globale des erreurs : reponses normalisees RFC 9457 ({@link ProblemDetail}).
+ * Scope aux controleurs REST uniquement (l'interface web a son propre
+ * {@code WebControllerAdvice} qui renvoie des vues HTML).
  */
-@RestControllerAdvice
+@RestControllerAdvice(annotations = RestController.class)
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)

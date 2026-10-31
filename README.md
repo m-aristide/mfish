@@ -76,3 +76,52 @@ Gérées uniquement par **Flyway** (`src/main/resources/db/migration`),
 - `Dockerfile` multi-étapes (JDK 25 → JRE 25, utilisateur non root).
 - `docker-compose.yml` : application + PostgreSQL + Chatwoot (+ Redis + sa base).
 - CI GitHub Actions : `.github/workflows/ci.yml` (build + tests + couverture).
+
+## Interface web d'administration (Thymeleaf)
+
+Interface de gestion **rendue côté serveur** (Thymeleaf 3.1 + Spring Security formulaire),
+mobile-first, en français. Voir `docs/AUDIT_WEB.md`.
+
+### Lancer l'interface
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Java\jdk-25.0.5.0.3"
+.\mvnw.cmd spring-boot:run
+# puis ouvrir http://localhost:8080/ (redirige vers /connexion)
+```
+
+Compte administrateur initial : `app.admin.username` / `app.admin.password-hash`
+(variables `APP_ADMIN_*`). En dev : `admin` / `admin123` (voir `application-dev.yaml`).
+
+### Assets frontend
+
+- CSS : `src/main/resources/static/app.css` (CSS à la main, variables CSS, mobile-first).
+- JS : `static/app.js` (configuration htmx + micro-interactions + graphiques Chart.js) ;
+  `static/vendor/htmx.min.js` et `static/vendor/chart.umd.min.js` sont **servis localement**
+  (aucun CDN en production).
+
+### Conventions de gabarits
+
+- Fragments natifs Thymeleaf (`th:replace`), gabarit commun dans `templates/layout/layout.html`
+  (`head`, `haut`, `bas`, `flash`). Aucun Layout Dialect.
+- Textes dans `messages.properties` (aucun texte en dur) ; `th:text` uniquement
+  (`th:utext` interdit).
+- Contrôleurs : package `com.mfish.erp.web.controller` (un par écran), aucune logique métier.
+- htmx : les contrôleurs renvoient un **fragment** quand l'en-tête `HX-Request: true` est
+  présent, sinon la page complète (même point d'entrée).
+- Un écran = un sous-répertoire dans `templates/<ecran>/` + un contrôleur + ses tests
+  `@WebMvcTest`.
+
+### Ajouter un écran
+
+1. Créer `templates/<ecran>/liste.html` (+ fragment dans `templates/<ecran>/fragments/`).
+2. Créer `web/controller/<Ecran>WebController.java` (étendre `AbstractWebController`,
+   déléguer aux services, PRG, DTO + Bean Validation).
+3. Ajouter les routes dans `web/security/WebSecurityConfig` (rôles ADMIN/LIVREUR).
+4. Ajouter les clés dans `messages.properties` et les tests `@WebMvcTest`.
+
+### Rôles
+
+- `ADMIN` : tous les écrans.
+- `LIVREUR` : tournée, commandes, clients uniquement (pas de paramètres ni statistiques).
+

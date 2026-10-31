@@ -28,6 +28,10 @@ public class StatsService {
         return commandeRepository.caParPeriode(debut, fin);
     }
 
+    public long nbCommandes(final LocalDate debut, final LocalDate fin) {
+        return commandeRepository.countCommandesPeriode(debut, fin);
+    }
+
     public List<CaParQuartier> caParQuartier(final LocalDate debut, final LocalDate fin) {
         return commandeRepository.caParQuartier(debut, fin);
     }

@@ -1,0 +1,43 @@
+<div id="liste-commandes" th:fragment="liste">
+    <div class="defilement-horizontal">
+        <table class="tableau">
+            <thead>
+            <tr>
+                <th th:text="#{client.nom}">Client</th>
+                <th th:text="#{client.quartier}">Quartier</th>
+                <th th:text="#{commande.date}">Date</th>
+                <th th:text="#{commande.statut}">Statut</th>
+                <th th:text="#{commande.montant}">Montant</th>
+                <th><span class="visually-hidden">Actions</span></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="commande : ${page.elements()}">
+                <td>
+                    <a th:href="@{/commandes/{id}(id=${commande.id()})}" th:text="${commande.clientNom()}">Nom</a><br>
+                    <span class="texte-doux" th:text="${commande.clientTelephone()}">Telephone</span>
+                </td>
+                <td th:text="${commande.quartierNom()}">Quartier</td>
+                <td th:text="${commande.date() != null ? #temporals.format(commande.date(), 'dd/MM/yyyy') : ''}">Date</td>
+                <td><span class="badge badge-neutre" th:text="#{__${commande.statut()}__}">Statut</span></td>
+                <td class="texte-important" th:text="${commande.montantTotalFormate()}">Montant</td>
+                <td><a class="bouton bouton-petit" th:href="@{/commandes/{id}(id=${commande.id()})}"
+                       th:text="#{action.voir}">Voir</a></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(page.elements())}">
+                <td colspan="6" class="etat-vide" th:text="#{commande.aucune}">Aucune commande</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <nav class="pagination" th:if="${page.totalPages() > 1}" aria-label="Pagination">
+        <a class="bouton bouton-petit bouton-secondaire" th:if="${page.hasPrecedent()}"
+           th:href="@{/commandes(page=${page.page() - 1}, statut=${filtre.statut()}, quartierId=${filtre.quartierId()}, date=${filtre.date()}, recherche=${filtre.recherche()})}"
+           th:text="#{pagination.precedent}">Precedent</a>
+        <span th:text="#{pagination.page} + ' ' + ${page.page() + 1} + ' ' + #{pagination.sur} + ' ' + ${page.totalPages()}">Page</span>
+        <a class="bouton bouton-petit bouton-secondaire" th:if="${page.hasSuivant()}"
+           th:href="@{/commandes(page=${page.page() + 1}, statut=${filtre.statut()}, quartierId=${filtre.quartierId()}, date=${filtre.date()}, recherche=${filtre.recherche()})}"
+           th:text="#{pagination.suivant}">Suivant</a>
+    </nav>
+</div>

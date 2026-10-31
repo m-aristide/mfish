@@ -14,7 +14,8 @@ public record ClientDto(
         String repere,
         Double latitude,
         Double longitude,
-        String notes) {
+        String notes,
+        boolean archive) {
 
     public static ClientDto from(final Client client) {
         return new ClientDto(
@@ -26,6 +27,7 @@ public record ClientDto(
                 client.getRepere(),
                 client.getLatitude(),
                 client.getLongitude(),
-                client.getNotes());
+                client.getNotes(),
+                client.isArchive());
     }
 }

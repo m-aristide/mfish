@@ -4,6 +4,7 @@ import com.mfish.erp.config.CorsProperties;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -20,6 +21,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 /**
  * Securite : API stateless protegee par JWT (HMAC-SHA256). CSRF desactive (aucun cookie de
  * session), CORS restreint aux origines configurees, session sans etat.
+ *
+ * <p>Cette chaine ne couvre que les routes API/webhooks/actuator ; l'interface web
+ * (formulaire de connexion, sessions, CSRF) est gere par {@code WebSecurityConfig}.
  */
 @Configuration
 @EnableWebSecurity
@@ -31,10 +35,13 @@ public class SecurityConfig {
     }
 
     @Bean
+    @Order(1)
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtAuthenticationFilter jwtFilter,
                                                    CorsProperties corsProperties) throws Exception {
         http
+            .securityMatcher("/api/**", "/webhooks/**", "/actuator/**",
+                    "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource(corsProperties)))
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

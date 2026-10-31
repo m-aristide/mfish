@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{tournee.titre})}"></head>
+<body>
+<header th:replace="~{layout/layout :: haut('tournee')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div class="titre-section">
+        <h1 th:text="#{tournee.titre}">Tournee du jour</h1>
+        <button class="bouton" hx-post="/tournee/calculer" hx-target="#liste-tournee"
+                hx-swap="outerHTML" hx-indicator="#indicateur-calcul">
+            <span th:text="#{tournee.calculer}">Calculer / recalculer la tournee</span>
+            <span id="indicateur-calcul" class="indicateur-chargement htmx-indicator" aria-hidden="true"></span>
+        </button>
+    </div>
+    <div th:replace="~{tournee/fragments/liste :: liste}"></div>
+</main>
+<div th:replace="~{layout/layout :: bas('tournee')}"></div>
+</body>
+</html>

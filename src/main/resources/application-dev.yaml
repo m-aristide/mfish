@@ -4,6 +4,9 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mfish}
     username: ${SPRING_DATASOURCE_USERNAME:mfish}
     password: ${SPRING_DATASOURCE_PASSWORD:mfish}
+  # Cache Thymeleaf desactive en developpement pour voir les changements sans redemarrage.
+  thymeleaf:
+    cache: false
 
 management:
   endpoints:

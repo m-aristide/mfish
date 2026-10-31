@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(pageTitle)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${pageTitle} + ' · mfish'">mfish</title>
+    <link rel="stylesheet" th:href="@{/app.css}">
+    <meta name="_csrf" th:content="${csrf != null ? csrf.token : ''}">
+    <meta name="_csrf_header" th:content="${csrf != null ? csrf.headerName : 'X-CSRF-TOKEN'}">
+    <script th:src="@{/vendor/htmx.min.js}" defer></script>
+    <script th:src="@{/app.js}" defer></script>
+</head>
+<body>
+<header th:fragment="haut(pageActive)">
+    <div class="barre-superieure">
+        <div class="marque"><a th:href="@{/}" th:text="#{app.nom}">mfish</a></div>
+        <div class="actions-utilisateur">
+            <span th:if="${utilisateurCourant != null}" th:text="${utilisateurCourant}">utilisateur</span>
+            <form th:if="${utilisateurCourant != null}" th:action="@{/deconnexion}" method="post">
+                <input type="hidden" th:name="${csrf.parameterName}" th:value="${csrf.token}">
+                <button type="submit" class="bouton bouton-petit bouton-secondaire"
+                        th:text="#{nav.deconnexion}">Deconnexion</button>
+            </form>
+        </div>
+    </div>
+    <nav class="nav-haut" aria-label="Navigation principale">
+        <a th:href="@{/}" th:classappend="${pageActive == 'tableauDeBord'} ? 'actif'"
+           th:text="#{nav.tableauDeBord}">Tableau de bord</a>
+        <a th:href="@{/tournee}" th:classappend="${pageActive == 'tournee'} ? 'actif'"
+           th:text="#{nav.tournee}">Tournee</a>
+        <a th:href="@{/commandes}" th:classappend="${pageActive == 'commandes'} ? 'actif'"
+           th:text="#{nav.commandes}">Commandes</a>
+        <a th:href="@{/clients}" th:classappend="${pageActive == 'clients'} ? 'actif'"
+           th:text="#{nav.clients}">Clients</a>
+        <a th:if="${isAdmin}" th:href="@{/conversations}"
+           th:classappend="${pageActive == 'conversations'} ? 'actif'"
+           th:text="#{nav.conversations}">Conversations</a>
+        <a th:if="${isAdmin}" th:href="@{/produits}"
+           th:classappend="${pageActive == 'produits'} ? 'actif'"
+           th:text="#{nav.produits}">Produits</a>
+        <a th:if="${isAdmin}" th:href="@{/statistiques}"
+           th:classappend="${pageActive == 'statistiques'} ? 'actif'"
+           th:text="#{nav.statistiques}">Statistiques</a>
+        <a th:if="${isAdmin}" th:href="@{/connaissance}"
+           th:classappend="${pageActive == 'connaissance'} ? 'actif'"
+           th:text="#{nav.baseConnaissance}">Base de connaissance</a>
+        <a th:if="${isAdmin}" th:href="@{/parametres}"
+           th:classappend="${pageActive == 'parametres'} ? 'actif'"
+           th:text="#{nav.parametres}">Parametres</a>
+    </nav>
+</header>
+
+<div th:fragment="bas(pageActive)">
+    <nav class="nav-basse" aria-label="Navigation mobile">
+        <a th:href="@{/tournee}" th:classappend="${pageActive == 'tournee'} ? 'actif'"
+           th:text="#{nav.tournee}">Tournee</a>
+        <a th:href="@{/commandes}" th:classappend="${pageActive == 'commandes'} ? 'actif'"
+           th:text="#{nav.commandes}">Commandes</a>
+        <a th:href="@{/clients}" th:classappend="${pageActive == 'clients'} ? 'actif'"
+           th:text="#{nav.clients}">Clients</a>
+        <a th:if="${isAdmin}" th:href="@{/conversations}"
+           th:classappend="${pageActive == 'conversations'} ? 'actif'"
+           th:text="#{nav.conversations}">Conversations</a>
+        <button type="button" class="bouton-icone" data-bascule="menu-plus"
+                aria-expanded="false" aria-controls="menu-plus" th:text="#{nav.plus}">Plus</button>
+    </nav>
+    <div id="menu-plus" class="cache">
+        <div class="enveloppe carte">
+            <a th:if="${isAdmin}" th:href="@{/produits}" class="bouton bouton-petit bouton-secondaire"
+               th:text="#{nav.produits}">Produits</a>
+            <a th:if="${isAdmin}" th:href="@{/statistiques}" class="bouton bouton-petit bouton-secondaire"
+               th:text="#{nav.statistiques}">Statistiques</a>
+            <a th:if="${isAdmin}" th:href="@{/connaissance}" class="bouton bouton-petit bouton-secondaire"
+               th:text="#{nav.baseConnaissance}">Base de connaissance</a>
+            <a th:if="${isAdmin}" th:href="@{/parametres}" class="bouton bouton-petit bouton-secondaire"
+               th:text="#{nav.parametres}">Parametres</a>
+            <form th:if="${utilisateurCourant != null}" th:action="@{/deconnexion}" method="post">
+                <input type="hidden" th:name="${csrf.parameterName}" th:value="${csrf.token}">
+                <button type="submit" class="bouton bouton-petit" th:text="#{nav.deconnexion}">Deconnexion</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="flash">
+    <div th:if="${flash != null}" th:class="'flash flash-' + ${flash.type}"
+         th:text="${flash.message}" role="status"></div>
+</div>
+</body>
+</html>

@@ -4,6 +4,8 @@ import com.mfish.erp.stats.CaParQuartier;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -47,4 +49,15 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
     @Query("SELECT c FROM Commande c WHERE c.statut = com.mfish.erp.commande.StatutCommande.LIVREE "
             + "AND c.statutPaiement <> com.mfish.erp.commande.StatutPaiement.PAYE")
     List<Commande> paiementsEnRetard();
+
+    @Query("SELECT c FROM Commande c JOIN c.client cl LEFT JOIN cl.quartier q "
+            + "WHERE (:statut IS NULL OR c.statut = :statut) "
+            + "AND (:date IS NULL OR c.dateLivraisonSouhaitee = :date) "
+            + "AND (:quartierId IS NULL OR q.id = :quartierId) "
+            + "AND (:recherche IS NULL "
+            + "     OR LOWER(cl.nom) LIKE LOWER(CONCAT('%', :recherche, '%')) "
+            + "     OR LOWER(cl.telephone) LIKE LOWER(CONCAT('%', :recherche, '%'))) "
+            + "ORDER BY c.createdAt DESC")
+    Page<Commande> rechercher(StatutCommande statut, LocalDate date, UUID quartierId,
+                              String recherche, Pageable pageable);
 }

@@ -13,6 +13,12 @@ logging:
     root: INFO
     com.mfish.erp: INFO
 
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+
 springdoc:
   api-docs:
     enabled: false

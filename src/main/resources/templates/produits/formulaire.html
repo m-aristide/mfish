@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{produit.nouveau})}"></head>
+<body>
+<header th:replace="~{layout/layout :: haut('produits')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div class="titre-section">
+        <h1 th:text="${produitId != null} ? #{produit.modifier} : #{produit.nouveau}">Produit</h1>
+        <a class="bouton bouton-petit bouton-secondaire" th:href="@{/produits}" th:text="#{action.retour}">Retour</a>
+    </div>
+
+    <form class="carte" th:object="${formulaire}"
+          th:action="${produitId != null} ? @{/produits/{id}(id=${produitId})} : @{/produits}" method="post">
+        <div class="champ">
+            <label class="etiquette" for="nom" th:text="#{produit.nom}">Nom</label>
+            <input class="saisie" type="text" id="nom" th:field="*{nom}" required>
+            <div class="erreur-champ" th:if="${#fields.hasErrors('nom')}" th:errors="*{nom}">Erreur</div>
+        </div>
+        <div class="champ">
+            <label class="etiquette" for="prix" th:text="#{produit.prix}">Prix</label>
+            <input class="saisie" type="number" id="prix" min="0" th:field="*{prix}" required>
+            <div class="erreur-champ" th:if="${#fields.hasErrors('prix')}" th:errors="*{prix}">Erreur</div>
+        </div>
+        <div class="champ">
+            <label class="etiquette" for="unite" th:text="#{produit.unite}">Unite</label>
+            <input class="saisie" type="text" id="unite" th:field="*{unite}">
+        </div>
+        <div class="champ">
+            <label class="etiquette" for="actif" th:text="#{produit.actif}">Actif</label>
+            <input type="checkbox" id="actif" th:field="*{actif}">
+        </div>
+        <button type="submit" class="bouton" th:text="#{action.enregistrer}">Enregistrer</button>
+    </form>
+</main>
+<div th:replace="~{layout/layout :: bas('produits')}"></div>
+</body>
+</html>

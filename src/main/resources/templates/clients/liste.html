@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{client.titre})}"></head>
+<body>
+<header th:replace="~{layout/layout :: haut('clients')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div class="titre-section">
+        <h1 th:text="#{client.titre}">Clients</h1>
+        <a class="bouton" th:href="@{/clients/nouveau}" th:text="#{client.nouveau}">Nouveau client</a>
+    </div>
+
+    <form class="carte" hx-get="/clients" hx-target="#liste-clients" hx-push-url="false">
+        <div class="champ">
+            <label class="etiquette" for="recherche" th:text="#{client.recherche}">Rechercher</label>
+            <input class="saisie" type="search" id="recherche" name="recherche" th:value="${recherche}">
+        </div>
+        <button type="submit" class="bouton" th:text="#{action.rechercher}">Rechercher</button>
+    </form>
+
+    <div style="margin-top: 1rem;" th:replace="~{clients/fragments/liste :: liste}"></div>
+</main>
+<div th:replace="~{layout/layout :: bas('clients')}"></div>
+</body>
+</html>

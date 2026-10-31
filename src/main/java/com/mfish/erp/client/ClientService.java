@@ -5,6 +5,8 @@ import com.mfish.erp.quartier.Quartier;
 import com.mfish.erp.quartier.QuartierRepository;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,12 +24,34 @@ public class ClientService {
     }
 
     public List<ClientDto> lister() {
-        return clientRepository.findAll().stream().map(ClientDto::from).toList();
+        return clientRepository.findAll().stream()
+                .filter(client -> !client.isArchive())
+                .map(ClientDto::from).toList();
+    }
+
+    public Page<ClientDto> rechercher(final String recherche, final Pageable pageable) {
+        return clientRepository.rechercherActifs(recherche, pageable).map(ClientDto::from);
     }
 
     public ClientDto trouver(final UUID id) {
         return clientRepository.findById(id).map(ClientDto::from)
                 .orElseThrow(() -> new NotFoundException("Client introuvable : " + id));
+    }
+
+    @Transactional
+    public ClientDto archiver(final UUID id) {
+        final Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Client introuvable : " + id));
+        client.setArchive(true);
+        return ClientDto.from(clientRepository.save(client));
+    }
+
+    @Transactional
+    public ClientDto desarchiver(final UUID id) {
+        final Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Client introuvable : " + id));
+        client.setArchive(false);
+        return ClientDto.from(clientRepository.save(client));
     }
 
     @Transactional

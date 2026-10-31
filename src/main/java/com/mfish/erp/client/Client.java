@@ -44,6 +44,9 @@ public class Client extends AbstractAuditable {
 
     private String notes;
 
+    @Column(nullable = false)
+    private boolean archive = false;
+
     protected Client() {
     }
 
@@ -118,5 +121,13 @@ public class Client extends AbstractAuditable {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public boolean isArchive() {
+        return archive;
+    }
+
+    public void setArchive(boolean archive) {
+        this.archive = archive;
     }
 }
