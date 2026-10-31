@@ -1,6 +1,7 @@
 package com.mfish.erp.commande;
 
 import com.mfish.erp.client.Client;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,12 @@ public class CommandeService {
      */
     public Commande creer(Client client, List<LigneCommande> lignes,
                           ModePaiement modePaiement, SourceCommande source) {
+        return creer(client, lignes, modePaiement, source, null, null);
+    }
+
+    public Commande creer(Client client, List<LigneCommande> lignes,
+                          ModePaiement modePaiement, SourceCommande source,
+                          LocalDate dateLivraisonSouhaitee, String notes) {
         Objects.requireNonNull(client, "client");
         Objects.requireNonNull(modePaiement, "modePaiement");
         Objects.requireNonNull(source, "source");
@@ -49,6 +56,8 @@ public class CommandeService {
         if (dejaPaye) {
             commande.setMontantPaye(total);
         }
+        commande.setDateLivraisonSouhaitee(dateLivraisonSouhaitee);
+        commande.setNotes(notes);
         lignes.forEach(commande::ajouterLigne);
         return commandeRepository.save(commande);
     }

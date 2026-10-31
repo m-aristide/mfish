@@ -94,3 +94,12 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
 - **Raison** : le format exact de l'API RouteXL sera validé/ajusté contre l'API réelle ; le plan B
   local (`OptimisationLocale` : tri `ordre_defaut` + plus proche voisin, Haversine) garantit le
   fonctionnement même sans service externe. Retry via Spring Retry, timeouts configurés.
+
+### 15. Module IA : Jackson 3 et contrat JSON
+- **Choix** : le parsing de la sortie IA utilise **Jackson 3** (`tools.jackson.databind.json.JsonMapper`,
+  `tools.jackson.databind.DeserializationFeature`), avec `FAIL_ON_UNKNOWN_PROPERTIES` désactivé
+  (champs en trop ignorés). Le contrat JSON utilise des noms de champs **camelCase** (`dateSouhaitee`)
+  pour éviter l'annotation `@JsonProperty` (jackson-annotations 3 non résolu).
+- **Raison** : Spring Boot 4 fournit Jackson 3 (package `tools.jackson`, pas `com.fasterxml`).
+  L'intention est stockée en `String` puis convertie via `Intention.fromString` (tolérant à la casse).
+  Le prix est **toujours lu en base** (l'IA ne fournit jamais de prix).
