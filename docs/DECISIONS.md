@@ -116,3 +116,63 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
 - **Choix** : migration `V3` (table `notifications`, contrainte unique `(commande_id, type)`) pour
   l'anti-doublon et le suivi du statut (`ENVOYEE`/`ECHEC`). Fenêtre horaire ±30 min arrondie à 5 min.
   Au-delà de 24 h sans activité client, un template est envoyé au lieu d'un message libre.
+
+## Décisions (interface web d'administration)
+
+### 18. Rendu serveur Thymeleaf (fragments natifs, sans Layout Dialect)
+- **Choix** : `spring-boot-starter-thymeleaf` (BOM Spring Boot 4.1.2) avec **fragments
+  natifs** (`th:replace`/`th:insert`), sans `thymeleaf-layout-dialect`.
+- **Raison** : le dialect de layout ajoute une dépendance externe non gérée par la BOM ;
+  les fragments natifs suffisent pour un gabarit commun et évitent tout risque de
+  compatibilité Spring Framework 7. Simplicité > dépendance.
+
+### 19. Deux chaînes Spring Security (API JWT + Web formulaire)
+- **Choix** : conserver la chaîne existante `/api/**` (JWT stateless, CSRF désactivé) et
+  ajouter une seconde `SecurityFilterChain` pour l'interface web (form login, sessions,
+  **CSRF activé**, rôles `ADMIN`/`LIVREUR`). La chaîne web est prioritaire sur les routes
+  non-API.
+- **Raison** : ne pas casser l'API existante ; l'interface web exige session + CSRF.
+
+### 20. CSP stricte → Alpine.js écarté
+- **Choix** : Alpine.js écarté ; micro-interactions via htmx + module JS vanilla externe.
+- **Raison** : Alpine évalue ses expressions via `new Function` (`unsafe-eval`), incompatible
+  avec la CSP stricte exigée (pas de script inline, `script-src 'self'`). Sécurité > simplicité.
+  Décision définitive, voir `PROBLEMES.md`.
+
+### 21. CSS écrit à la main (repli pré-approuvé)
+- **Choix** : CSS sobre organisé en variables CSS (palette imposée : vert #0F766E, ambre
+  #F59E0B, fond clair, contraste AA), mobile-first, sans Tailwind.
+- **Raison** : le binaire standalone Tailwind nécessite un téléchargement et une intégration
+  Maven non déterministe dans cet environnement. Repli pré-approuvé par la consigne.
+
+### 22. Assets JS servis localement (aucun CDN)
+- **Choix** : `htmx 2.0.4` et `chart.js 4.4.7` téléchargés et versionnés dans
+  `src/main/resources/static/vendor/`. Configuration htmx (jeton CSRF) dans `static/app.js`.
+- **Raison** : aucun CDN en production ; fichiers statiques versionnés, servis par Spring.
+
+### 23. Devise : FCFA configurable, montants entiers
+- **Choix** : propriété `app.monnaie.devise` (défaut `FCFA`), formatage `1 500 FCFA` sans
+  décimale. Les montants restent des `long` (plus petite unité) côté métier ; seul le
+  formatage d'affichage est dans `web/mapper`.
+- **Raison** : conforme à la consigne (FCFA par défaut, configurable).
+
+### 24. Utilisateurs et rôles (ADMIN / LIVREUR)
+- **Choix** : table `utilisateurs` (Flyway V4) + `Role` (ADMIN/LIVREUR). L'administrateur
+  initial est créé/synchronisé au démarrage depuis `app.admin.*` (`AdminInitializer`).
+  Un `UserDetailsService` charge les comptes depuis la base (form login web). L'API JWT
+  existante continue d'utiliser `AuthService`/`AdminProperties`.
+- **Raison** : un seul commerce, deux rôles ; le LIVREUR voit tournée, commandes et clients
+  uniquement.
+
+### 25. Base de connaissance IA (Markdown + versions)
+- **Choix** : contenu stocké dans une table `connaissances` avec historique (`V5`) ; le
+  contenu courant sert de contexte au test IA. Historique + retour à une version précédente
+  gérés par `ConnaissanceService`.
+- **Raison** : aucun fichier ni secret dans le dépôt ; historique persistant en base.
+
+### 26. Tournée : service applicatif manquant
+- **Choix** : création de `TourneeService` (génération/recalcul de tournée à partir des
+  commandes à livrer du jour, ordonnancement via `RoutingPort` avec repli `OptimisationLocale`,
+  marquage des arrêts). Le contrôleur web délègue toute logique à ce service.
+- **Raison** : le module tournée existant n'expose pas encore de service applicatif.
+
