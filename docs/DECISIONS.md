@@ -87,3 +87,10 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
 - **Raison** : l'audit Spring Data (`@EnableJpaAuditing`) n'était pas appliqué dans le contexte
   `@DataJpaTest` de Spring Boot 4 (violations NOT NULL). La logique **métier** continue d'utiliser
   exclusivement le `Clock` injecté ; seuls les horodatages d'audit relèvent d'Hibernate.
+
+### 14. Module tournée : contrat RouteXL simplifié
+- **Choix** : l'adaptateur `RouteXlClient` envoie `POST /tour` avec un contrat JSON simplifié
+  (`start` + `visites`) et lit une réponse `route.visits[{id, arrival (HH:mm)}]`, testé par WireMock.
+- **Raison** : le format exact de l'API RouteXL sera validé/ajusté contre l'API réelle ; le plan B
+  local (`OptimisationLocale` : tri `ordre_defaut` + plus proche voisin, Haversine) garantit le
+  fonctionnement même sans service externe. Retry via Spring Retry, timeouts configurés.
