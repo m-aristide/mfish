@@ -72,3 +72,18 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
   environnement ; `pgvector/pgvector:pg16` est déjà disponible localement, satisfait la
   contrainte « PostgreSQL 15+ » et pourra servir pour un éventuel rapprochement de produits par
   similarité (embeddings), sans être requis par le noyau métier.
+
+### 12. Packages des annotations de test réorganisés (Spring Boot 4)
+- **Constat** : les annotations de *slices* de test ont changé de package en Spring Boot 4.1.2.
+  - `@DataJpaTest` → `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest`
+  - `@WebMvcTest` → `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest`
+  - `@SpringBootTest` → inchangé (`org.springframework.boot.test.context.SpringBootTest`)
+- **Raison** : vérifié dans les jars résolus (`spring-boot-data-jpa-test`, `spring-boot-webmvc-test`),
+  suite à l'erreur de compilation du package historique `...boot.test.autoconfigure.orm.jpa`.
+
+### 13. Audit des entités (created_at / updated_at)
+- **Choix** : les métadonnées d'audit (`created_at`/`updated_at`, `evenements_log.created_at`)
+  sont alimentées par Hibernate (`@CreationTimestamp`/`@UpdateTimestamp`).
+- **Raison** : l'audit Spring Data (`@EnableJpaAuditing`) n'était pas appliqué dans le contexte
+  `@DataJpaTest` de Spring Boot 4 (violations NOT NULL). La logique **métier** continue d'utiliser
+  exclusivement le `Clock` injecté ; seuls les horodatages d'audit relèvent d'Hibernate.
