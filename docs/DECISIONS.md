@@ -111,3 +111,8 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
   `TaskExecutor` (threads virtuels Java 25).
 - **Raison** : répondre 200 rapidement à Chatwoot puis traiter hors-ligne. Le nom exact de
   l'en-tête Chatwoot sera validé dans `docs/CHATWOOT_SETUP.md`.
+
+### 17. Notifications : règle des 24 h et anti-doublon
+- **Choix** : migration `V3` (table `notifications`, contrainte unique `(commande_id, type)`) pour
+  l'anti-doublon et le suivi du statut (`ENVOYEE`/`ECHEC`). Fenêtre horaire ±30 min arrondie à 5 min.
+  Au-delà de 24 h sans activité client, un template est envoyé au lieu d'un message libre.
