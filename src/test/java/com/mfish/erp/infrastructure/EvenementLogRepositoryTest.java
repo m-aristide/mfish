@@ -39,7 +39,8 @@ class EvenementLogRepositoryTest {
     @DisplayName("doit_avoir_applique_les_migrations_v1_et_v2")
     void doit_avoir_applique_les_migrations_v1_et_v2() {
         final List<String> versions = jdbcTemplate.queryForList(
-                "SELECT version FROM flyway_schema_history WHERE success = true ORDER BY installed_rank",
+                "SELECT \"version\" FROM \"flyway_schema_history\" "
+                        + "WHERE \"success\" = true ORDER BY \"installed_rank\"",
                 String.class);
 
         assertThat(versions).contains("1", "2");

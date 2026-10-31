@@ -1,6 +1,9 @@
-# Profil de test : la base vient de Testcontainers (@ServiceConnection), aucun secret reel.
+# Profil de test : base H2 (mode PostgreSQL) quand Docker/PostgreSQL est indisponible.
+# Les migrations H2 sont dans db/migration-h2 (dialecte H2). Aucun secret reel.
 app:
   timezone: Africa/Abidjan
+  monnaie:
+    devise: FCFA
   jwt:
     secret: test-secret-test-secret-test-secret-0123456789
   admin:
@@ -20,3 +23,15 @@ spring:
   threads:
     virtual:
       enabled: false
+  datasource:
+    url: jdbc:h2:mem:mfish;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+    locations: classpath:db/migration-h2
+
