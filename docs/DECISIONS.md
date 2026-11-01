@@ -184,4 +184,41 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
   de 90 % sur les contrôleurs web est documentée comme écart dans `PROBLEMES.md` (le code
   métier historique conserve une couverture élevée).
 
+## Décisions (mission WhatsApp Cloud API)
+
+### 28. Préfixe de configuration `whatsapp` (pas `app.whatsapp`)
+- **Choix** : `@ConfigurationProperties("whatsapp")`, conformément à la consigne
+  (`whatsapp.enabled`, `whatsapp.api-version`). Le relâchement Spring Boot mappe
+  `WHATSAPP_ACCESS_TOKEN` → `whatsapp.access-token`, etc.
+- **Raison** : consigne explicite ; écart assumé avec le préfixe `app.*` historique.
+
+### 29. Réutilisation du `TaskExecutor` auto-configuré (pas d'Executor custom)
+- **Choix** : ne pas déclarer de bean `Executor` custom pour le traitement asynchrone ;
+  injecter le `TaskExecutor` auto-configuré de Spring Boot (virtuel en prod car
+  `spring.threads.virtual.enabled=true`).
+- **Raison** : déclarer un bean `Executor` custom supprime le bean `applicationTaskExecutor`
+  (`@ConditionalOnMissingBean(Executor.class)`) et casse le `WebhookService` Chatwoot
+  existant qui injecte `TaskExecutor`.
+
+### 30. Idempotence par `wamid` unique
+- **Choix** : table `whatsapp_messages` avec index unique sur `wamid` ; `existsByWamid`
+  + contrainte unique en filet de sécurité.
+- **Raison** : `wamid` est l'identifiant Meta stable d'un message (entrant et sortant).
+
+### 31. Indicateur de saisie en best-effort
+- **Choix** : `indicateurSaisie` tente un statut `typing` mais capture l'échec
+  (non documenté officiellement dans la Cloud API).
+- **Raison** : la consigne dit « si supporté » ; on ne fait pas échouer le flux pour cela.
+
+### 32. Retry manuel (transitoire uniquement) au lieu de `RetrySupport`
+- **Choix** : boucle de retry dédiée dans `WhatsAppClient` (5xx, timeout, 429 avec
+  `Retry-After`), jamais sur 4xx fonctionnel.
+- **Raison** : `RetrySupport` retente sur toute `Exception` ; la Cloud API exige un
+  contrôle fin des erreurs transitoires et du `Retry-After`.
+
+### 33. Version de l'API Graph configurable
+- **Choix** : `whatsapp.api-version` (défaut `v21.0`), jamais figée dans l'URI
+  (`/{version}/{phoneNumberId}/messages`).
+- **Raison** : la version Graph évolue ; consigne explicite de non-figeage.
+
 

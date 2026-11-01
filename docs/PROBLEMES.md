@@ -75,16 +75,17 @@ appliqués et le travail restant.
 - **Travail restant** : compléter les tests des branches d'erreur et de `WebSecurityConfig`
   pour viser 90 % sur les contrôleurs web.
 
-## 9. Docker de nouveau disponible (Testcontainers ré-activable)
+## 9. Docker de nouveau disponible (Testcontainers validé)
 - **Symptôme** : Docker Desktop était arrêté pendant l'essentiel du développement ; les tests
   d'intégration ont donc été basculés sur H2 (voir ci-dessus).
 - **État** : Docker est de nouveau disponible. La bascule H2 reste la configuration de test
   par défaut (déterministe, sans dépendance au daemon).
-- **Ré-activation de Testcontainers (PostgreSQL réel)** : retirer le bloc `spring.datasource`
-  et `spring.flyway.locations` de `application-test.yaml`, retirer `@ConditionalOnProperty`
-  de `TestcontainersConfiguration`, puis lancer `mvn test -Dapp.tests.use-testcontainers=true`.
-- **Travail restant** : relancer la suite sur PostgreSQL réel pour valider le parcours
-  commande → tournée → livraison → encaissement sur le moteur réel.
+- **Validation PostgreSQL** : `PostgresWebIntegrationTest` (profil `test-pg`) démarre un
+  conteneur PostgreSQL, applique les migrations de production (`db/migration`), valide le
+  schéma Hibernate (`ddl-auto=validate`) et vérifie connexion + écrans. Lancer :
+  `mvn test -Dtest=PostgresWebIntegrationTest`.
+- **Travail restant** : néant (parcours validé sur PostgreSQL réel et sur H2).
+
 
 ## 10. Tests de bout en bout (navigateur) non automatisés
 - **Symptôme** : les parcours de bout en bout (connexion, création de commande, calcul de
@@ -93,6 +94,21 @@ appliqués et le travail restant.
 - **Contournement** : les parcours sont couverts au niveau contrôleur (`@WebMvcTest`) et
   intégration (`@SpringBootTest` + MockMvc), sans navigateur.
 - **Travail restant** : ajouter Playwright for Java (ou HtmlUnit) et 3 à 5 parcours e2e.
+
+
+
+## 11. Identifiants WhatsApp absents de `.env.local` (tests réels en mode dégradé)
+- **Symptôme** : les variables `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`,
+  `WHATSAPP_BUSINESS_ACCOUNT_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`,
+  `WHATSAPP_TEST_RECIPIENT` (et le jeton de tunnel) ne sont **pas** présentes dans
+  `.env.local`, contrairement à la consigne.
+- **Cause supposée** : identifiants Meta pas encore fournis dans l'environnement.
+- **Contournement** : intégration complète implémentée et testée en **simulation** (tests
+  signés, WireMock, MockMvc) ; le module reste `whatsapp.enabled=false` par défaut.
+  Aucun envoi réel, aucun enregistrement de webhook par API, aucun secret inventé.
+- **Travail restant** (à faire par l'opérateur) : renseigner les variables dans `.env.local`,
+  passer `WHATSAPP_ENABLED=true`, lancer le tunnel, enregistrer le webhook et envoyer
+  l'unique message `hello_world` à `WHATSAPP_TEST_RECIPIENT` (voir `WHATSAPP_SETUP.md`).
 
 
 
