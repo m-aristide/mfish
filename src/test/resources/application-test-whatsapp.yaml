@@ -1,0 +1,20 @@
+# Profil de test WhatsApp : active le module (whatsapp.enabled=true) avec des identifiants
+# de test. Aucun appel reel : le port sortant est mocke dans les tests d'integration.
+whatsapp:
+  enabled: true
+  access-token: test-whatsapp-token
+  phone-number-id: "123456789"
+  business-account-id: "987654321"
+  app-secret: test-app-secret
+  verify-token: test-verify-token
+  api-version: v21.0
+  base-url: http://localhost:0
+  test-recipient: "+2250700000001"
+  max-body-size-bytes: 1048576
+  connect-timeout: 1s
+  read-timeout: 2s
+  retry:
+    max-attempts: 2
+    initial-delay: 1ms
+    multiplier: 2.0
+    max-delay: 2ms

@@ -1,0 +1,26 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "102290129340398",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "contacts": [ { "profile": { "name": "Awa" }, "wa_id": "2250700000001" } ],
+            "messages": [
+              {
+                "from": "2250700000001",
+                "id": "wamid.document.123",
+                "timestamp": "1749416383",
+                "type": "document",
+                "document": { "id": "media-doc-1", "mime_type": "application/pdf" }
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}
