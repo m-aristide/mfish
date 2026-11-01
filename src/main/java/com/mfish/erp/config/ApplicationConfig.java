@@ -1,5 +1,6 @@
 package com.mfish.erp.config;
 
+import com.mfish.erp.whatsapp.config.WhatsAppProperties;
 import java.time.Clock;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +18,8 @@ import org.springframework.context.annotation.Configuration;
         ChatwootProperties.class,
         DeepSeekProperties.class,
         RoutexlProperties.class,
-        GeocodingProperties.class
+        GeocodingProperties.class,
+        WhatsAppProperties.class
 })
 public class ApplicationConfig {
 

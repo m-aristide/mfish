@@ -93,8 +93,8 @@ app:
       max-delay: 4s
   routexl:
     base-url: https://api.routexl.com
-    username: ${ROUTEXL_USERNAME:mfish.infos@gmail.com}
-    password: ${ROUTEXL_PASSWORD:jinLF.lPNKvtd.0wjApD}
+    username: ${ROUTEXL_USERNAME:}
+    password: ${ROUTEXL_PASSWORD:}
     max-stops: ${ROUTEXL_MAX_STOPS:20}
     connect-timeout: 3s
     read-timeout: 30s
@@ -113,3 +113,25 @@ app:
       initial-delay: 500ms
       multiplier: 2.0
       max-delay: 2s
+
+# Integration officielle WhatsApp Cloud API (Meta). Les secrets sont injectes par
+# variables d'environnement (WHATSAPP_*). Le module est desactive par defaut (enabled=false) :
+# l'application demarre sans lui si aucun identifiant n'est fourni.
+whatsapp:
+  enabled: ${WHATSAPP_ENABLED:false}
+  access-token: ${WHATSAPP_ACCESS_TOKEN:}
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+  business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:}
+  app-secret: ${WHATSAPP_APP_SECRET:}
+  verify-token: ${WHATSAPP_VERIFY_TOKEN:}
+  api-version: ${WHATSAPP_API_VERSION:v21.0}
+  base-url: ${WHATSAPP_BASE_URL:https://graph.facebook.com}
+  test-recipient: ${WHATSAPP_TEST_RECIPIENT:}
+  max-body-size-bytes: 1048576
+  connect-timeout: 3s
+  read-timeout: 10s
+  retry:
+    max-attempts: 3
+    initial-delay: 200ms
+    multiplier: 2.0
+    max-delay: 2s

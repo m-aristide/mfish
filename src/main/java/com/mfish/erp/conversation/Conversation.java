@@ -26,8 +26,11 @@ public class Conversation {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "chatwoot_conversation_id", nullable = false, unique = true)
+    @Column(name = "chatwoot_conversation_id", unique = true)
     private String chatwootConversationId;
+
+    @Column(name = "telephone", unique = true)
+    private String telephone;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id")
@@ -58,6 +61,14 @@ public class Conversation {
 
     public void setChatwootConversationId(String chatwootConversationId) {
         this.chatwootConversationId = chatwootConversationId;
+    }
+
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
     }
 
     public Client getClient() {

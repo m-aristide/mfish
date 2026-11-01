@@ -47,6 +47,9 @@ public class Client extends AbstractAuditable {
     @Column(nullable = false)
     private boolean archive = false;
 
+    @Column(nullable = false)
+    private boolean contactable = true;
+
     protected Client() {
     }
 
@@ -129,5 +132,13 @@ public class Client extends AbstractAuditable {
 
     public void setArchive(boolean archive) {
         this.archive = archive;
+    }
+
+    public boolean isContactable() {
+        return contactable;
+    }
+
+    public void setContactable(boolean contactable) {
+        this.contactable = contactable;
     }
 }

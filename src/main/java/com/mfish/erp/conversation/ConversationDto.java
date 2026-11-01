@@ -9,6 +9,7 @@ import java.util.UUID;
 public record ConversationDto(
         UUID id,
         String chatwootConversationId,
+        String telephone,
         UUID clientId,
         String clientNom,
         String clientTelephone,
@@ -19,6 +20,7 @@ public record ConversationDto(
         return new ConversationDto(
                 conversation.getId(),
                 conversation.getChatwootConversationId(),
+                conversation.getTelephone(),
                 conversation.getClient() == null ? null : conversation.getClient().getId(),
                 conversation.getClient() == null ? null : conversation.getClient().getNom(),
                 conversation.getClient() == null ? null : conversation.getClient().getTelephone(),
