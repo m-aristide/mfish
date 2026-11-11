@@ -24,7 +24,8 @@ public class ProduitService {
     }
 
     public ProduitDto creer(final ProduitRequest request) {
-        final Produit produit = new Produit(request.nom(), request.prix(), request.unite(), request.actif());
+        final Produit produit = new Produit(request.nom(), request.prix(), request.unite(),
+                request.actif(), request.image());
         return ProduitDto.from(produitRepository.save(produit));
     }
 
@@ -35,6 +36,7 @@ public class ProduitService {
         produit.setPrix(request.prix());
         produit.setUnite(request.unite());
         produit.setActif(request.actif());
+        produit.setImage(request.image());
         return ProduitDto.from(produitRepository.save(produit));
     }
 

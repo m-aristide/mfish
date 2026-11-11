@@ -27,6 +27,10 @@ spring:
     encoding: UTF-8
   thymeleaf:
     cache: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   # Base de donnees : SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME et
   # SPRING_DATASOURCE_PASSWORD sont lues directement depuis l'environnement.
 
@@ -60,6 +64,8 @@ app:
   timezone: ${APP_TIMEZONE:Africa/Abidjan}
   monnaie:
     devise: ${APP_MONNAIE_DEVISE:FCFA}
+  stockage:
+    uploads-dir: ${APP_STOCKAGE_UPLOADS_DIR:uploads}
   jwt:
     secret: ${APP_JWT_SECRET:}
     validity: 12h

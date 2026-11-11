@@ -61,9 +61,12 @@ public class TourneeService {
     }
 
     public Tournee tourneeDuJour() {
-        final LocalDate aujourdhui = LocalDate.now(clock);
-        return tourneeRepository.findByDate(aujourdhui)
-                .orElseGet(() -> tourneeRepository.save(new Tournee(aujourdhui, StatutTournee.BROUILLON)));
+        return tourneeParDate(LocalDate.now(clock));
+    }
+
+    public Tournee tourneeParDate(final LocalDate date) {
+        return tourneeRepository.findByDate(date)
+                .orElseGet(() -> tourneeRepository.save(new Tournee(date, StatutTournee.BROUILLON)));
     }
 
     public List<ArretTournee> arrets(final UUID tourneeId) {
@@ -71,12 +74,21 @@ public class TourneeService {
     }
 
     /**
-     * (Re)calcule la tournee du jour : construit les arrets a optimiser a partir des commandes
-     * a livrer, appelle RouteXL puis replie sur l'optimisation locale en cas d'echec.
+     * (Re)calcule la tournee du jour.
      */
     @Transactional
     public Tournee calculer() {
-        final Tournee tournee = tourneeDuJour();
+        return calculer(LocalDate.now(clock));
+    }
+
+    /**
+     * (Re)calcule la tournee d'une date donnee : construit les arrets a optimiser a partir
+     * des commandes a livrer, appelle RouteXL puis replie sur l'optimisation locale en cas
+     * d'echec.
+     */
+    @Transactional
+    public Tournee calculer(final LocalDate date) {
+        final Tournee tournee = tourneeParDate(date);
         final List<Commande> commandes = commandeRepository.findByDateLivraisonSouhaitee(tournee.getDate())
                 .stream()
                 .filter(commande -> commande.getStatut() == StatutCommande.A_PLANIFIER

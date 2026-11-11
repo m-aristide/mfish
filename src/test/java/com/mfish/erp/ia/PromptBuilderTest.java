@@ -18,7 +18,7 @@ class PromptBuilderTest {
     @DisplayName("doit_contenir_catalogue_quartiers_et_format_json")
     void doit_contenir_catalogue_quartiers_et_format_json() {
         final String prompt = promptBuilder.construire(
-                List.of(new Produit("Attieke", 1000, "plat", true)),
+                List.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")),
                 List.of(new Quartier("Cocody", "Nord", 5.35, -3.97, 1, true)),
                 List.of(LocalDate.of(2026, 11, 1)));
 

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import com.mfish.erp.produit.ProduitService;
+import com.mfish.erp.stockage.StockageService;
 import com.mfish.erp.securite.JwtService;
 import com.mfish.erp.web.FlashBuilder;
 import com.mfish.erp.web.config.WebConfig;
@@ -34,6 +35,8 @@ class ProduitWebControllerTest {
     private JwtService jwtService;
     @MockitoBean
     private ProduitService produitService;
+    @MockitoBean
+    private StockageService stockageService;
     @MockitoBean
     private FlashBuilder flashBuilder;
 

@@ -18,11 +18,11 @@ class RapprochementProduitsTest {
     void setUp() {
         rapprochement = new RapprochementProduits();
         catalogue = List.of(
-                new Produit("Attieke", 1000, "plat", true),
-                new Produit("Poulet braise", 5000, "piece", true),
-                new Produit("Jus de bissap", 1000, "bouteille", true),
-                new Produit("Riz", 500, "plat", true),
-                new Produit("Ris", 600, "plat", true));
+                new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg"),
+                new Produit("Poulet braise", 5000, "piece", true, "/images/default-produit.svg"),
+                new Produit("Jus de bissap", 1000, "bouteille", true, "/images/default-produit.svg"),
+                new Produit("Riz", 500, "plat", true, "/images/default-produit.svg"),
+                new Produit("Ris", 600, "plat", true, "/images/default-produit.svg"));
     }
 
     @Test

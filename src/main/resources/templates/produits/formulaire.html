@@ -11,7 +11,8 @@
     </div>
 
     <form class="carte" th:object="${formulaire}"
-          th:action="${produitId != null} ? @{/produits/{id}(id=${produitId})} : @{/produits}" method="post">
+          th:action="${produitId != null} ? @{/produits/{id}(id=${produitId})} : @{/produits}"
+          method="post" enctype="multipart/form-data">
         <div class="champ">
             <label class="etiquette" for="nom" th:text="#{produit.nom}">Nom</label>
             <input class="saisie" type="text" id="nom" th:field="*{nom}" required>
@@ -25,6 +26,17 @@
         <div class="champ">
             <label class="etiquette" for="unite" th:text="#{produit.unite}">Unite</label>
             <input class="saisie" type="text" id="unite" th:field="*{unite}">
+        </div>
+        <div class="champ">
+            <label class="etiquette" for="imageFichier" th:text="#{produit.image}">Image</label>
+            <input type="hidden" th:field="*{imageExistante}">
+            <img th:if="${formulaire.imageExistante != null and !formulaire.imageExistante.isEmpty()}"
+                 th:src="${formulaire.imageExistante}" alt=""
+                 style="max-width: 6rem; max-height: 6rem; object-fit: cover; border-radius: 0.5rem; display: block;">
+            <input class="saisie" type="file" id="imageFichier" name="imageFichier"
+                   accept="image/jpeg,image/png,image/webp,image/svg+xml,image/gif">
+            <div class="erreur-champ" th:if="${#fields.hasErrors('imageExistante')}"
+                 th:errors="*{imageExistante}">Erreur</div>
         </div>
         <div class="champ">
             <label class="etiquette" for="actif" th:text="#{produit.actif}">Actif</label>

@@ -59,8 +59,8 @@ class StatsServiceTest {
                 new Quartier("TestQuartier2", "Centre", 5.32, -4.01, 2, true));
         final Client client1 = client(1, cocody);
         final Client client2 = client(2, plateau);
-        final Produit attieke = produitRepository.saveAndFlush(new Produit("Attieke", 1000, "plat", true));
-        final Produit poulet = produitRepository.saveAndFlush(new Produit("Poulet", 5000, "piece", true));
+        final Produit attieke = produitRepository.saveAndFlush(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg"));
+        final Produit poulet = produitRepository.saveAndFlush(new Produit("Poulet", 5000, "piece", true, "/images/default-produit.svg"));
 
         commande(client1, LocalDate.of(2026, 11, 1), StatutCommande.LIVREE, attieke, 2, 1000);
         commande(client2, LocalDate.of(2026, 11, 1), StatutCommande.PLANIFIEE, poulet, 1, 5000);

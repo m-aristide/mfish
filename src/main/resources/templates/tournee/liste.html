@@ -7,12 +7,27 @@
     <div th:replace="~{layout/layout :: flash}"></div>
     <div class="titre-section">
         <h1 th:text="#{tournee.titre}">Tournee du jour</h1>
-        <button class="bouton" hx-post="/tournee/calculer" hx-target="#liste-tournee"
-                hx-swap="outerHTML" hx-indicator="#indicateur-calcul">
+    </div>
+
+    <form class="carte" th:action="@{/tournee}" method="get">
+        <div class="grille grille-2">
+            <div class="champ">
+                <label class="etiquette" for="date" th:text="#{tournee.date}">Date</label>
+                <input class="saisie" type="date" id="date" name="date" th:value="${dateSelectionnee}">
+            </div>
+        </div>
+        <button type="submit" class="bouton" th:text="#{tournee.afficher}">Afficher</button>
+    </form>
+
+    <form class="carte" hx-post="/tournee/calculer" hx-target="#liste-tournee"
+          hx-swap="outerHTML" hx-indicator="#indicateur-calcul">
+        <input type="hidden" name="date" th:value="${dateSelectionnee}">
+        <button type="submit" class="bouton">
             <span th:text="#{tournee.calculer}">Calculer / recalculer la tournee</span>
             <span id="indicateur-calcul" class="indicateur-chargement htmx-indicator" aria-hidden="true"></span>
         </button>
-    </div>
+    </form>
+
     <div th:replace="~{tournee/fragments/liste :: liste}"></div>
 </main>
 <div th:replace="~{layout/layout :: bas('tournee')}"></div>

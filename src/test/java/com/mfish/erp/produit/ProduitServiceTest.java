@@ -30,7 +30,7 @@ class ProduitServiceTest {
     @Test
     @DisplayName("doit_lister_les_produits")
     void doit_lister_les_produits() {
-        when(produitRepository.findAll()).thenReturn(List.of(new Produit("Attieke", 1000, "plat", true)));
+        when(produitRepository.findAll()).thenReturn(List.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")));
 
         assertThat(service().lister()).hasSize(1);
     }
@@ -38,7 +38,7 @@ class ProduitServiceTest {
     @Test
     @DisplayName("doit_trouver_un_produit")
     void doit_trouver_un_produit() {
-        when(produitRepository.findById(id)).thenReturn(Optional.of(new Produit("Attieke", 1000, "plat", true)));
+        when(produitRepository.findById(id)).thenReturn(Optional.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")));
 
         assertThat(service().trouver(id).nom()).isEqualTo("Attieke");
     }
@@ -48,17 +48,17 @@ class ProduitServiceTest {
     void doit_creer_un_produit() {
         when(produitRepository.save(any(Produit.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThat(service().creer(new ProduitRequest("Attieke", 1000, "plat", true)).nom())
+        assertThat(service().creer(new ProduitRequest("Attieke", 1000, "plat", true, "/images/p.png")).nom())
                 .isEqualTo("Attieke");
     }
 
     @Test
     @DisplayName("doit_modifier_un_produit")
     void doit_modifier_un_produit() {
-        when(produitRepository.findById(id)).thenReturn(Optional.of(new Produit("Attieke", 1000, "plat", true)));
+        when(produitRepository.findById(id)).thenReturn(Optional.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")));
         when(produitRepository.save(any(Produit.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        assertThat(service().modifier(id, new ProduitRequest("Attieke2", 1200, "plat", true)).nom())
+        assertThat(service().modifier(id, new ProduitRequest("Attieke2", 1200, "plat", true, "/images/p.png")).nom())
                 .isEqualTo("Attieke2");
     }
 

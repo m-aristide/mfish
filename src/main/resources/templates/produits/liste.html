@@ -15,6 +15,7 @@
             <table class="tableau">
                 <thead>
                 <tr>
+                    <th th:text="#{produit.image}">Image</th>
                     <th th:text="#{produit.nom}">Nom</th>
                     <th th:text="#{produit.prix}">Prix</th>
                     <th th:text="#{produit.unite}">Unite</th>
@@ -24,6 +25,10 @@
                 </thead>
                 <tbody>
                 <tr th:each="produit : ${produits}">
+                    <td>
+                        <img th:src="${produit.image()}" th:alt="${produit.nom()}"
+                             style="max-width: 4rem; max-height: 4rem; object-fit: cover; border-radius: 0.5rem;">
+                    </td>
                     <td th:text="${produit.nom()}">Nom</td>
                     <td th:text="${@monnaieMapper.formater(produit.prix())}">Prix</td>
                     <td th:text="${produit.unite()}">Unite</td>
@@ -46,7 +51,7 @@
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(produits)}">
-                    <td colspan="5" class="etat-vide" th:text="#{produit.aucun}">Aucun produit</td>
+                    <td colspan="6" class="etat-vide" th:text="#{produit.aucun}">Aucun produit</td>
                 </tr>
                 </tbody>
             </table>

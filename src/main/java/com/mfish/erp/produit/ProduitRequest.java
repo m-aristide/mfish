@@ -10,5 +10,6 @@ public record ProduitRequest(
         @NotBlank String nom,
         @PositiveOrZero long prix,
         String unite,
-        boolean actif) {
+        boolean actif,
+        @NotBlank String image) {
 }

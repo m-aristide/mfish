@@ -40,7 +40,7 @@ class VueMapperTest {
                 Map.of(clientId, new ClientDto(clientId, "Awa", "+2250700000001", quartierId,
                         "Rue 1", null, null, null, null, false)),
                 Map.of(quartierId, new QuartierDto(quartierId, "Cocody", "Nord", null, null, 1, true)),
-                Map.of(produitId, new ProduitDto(produitId, "Attieke", 1_000, "plat", true)));
+                Map.of(produitId, new ProduitDto(produitId, "Attieke", 1_000, "plat", true, "/images/default-produit.svg")));
 
         assertThat(vue.clientNom()).isEqualTo("Awa");
         assertThat(vue.quartierNom()).isEqualTo("Cocody");

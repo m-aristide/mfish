@@ -28,16 +28,20 @@ public class Produit {
     private String unite;
 
     @Column(nullable = false)
+    private String image;
+
+    @Column(nullable = false)
     private boolean actif = true;
 
     protected Produit() {
     }
 
-    public Produit(String nom, long prix, String unite, boolean actif) {
+    public Produit(String nom, long prix, String unite, boolean actif, String image) {
         this.nom = nom;
         this.prix = prix;
         this.unite = unite;
         this.actif = actif;
+        this.image = image;
     }
 
     public UUID getId() {
@@ -66,6 +70,14 @@ public class Produit {
 
     public void setUnite(String unite) {
         this.unite = unite;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 
     public boolean isActif() {

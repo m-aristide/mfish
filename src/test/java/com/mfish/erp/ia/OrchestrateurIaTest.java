@@ -56,7 +56,7 @@ class OrchestrateurIaTest {
     @DisplayName("doit_creer_une_commande_avec_le_prix_en_base_quand_complet")
     void doit_creer_une_commande_avec_le_prix_en_base_quand_complet() {
         when(produitRepository.findByActifTrueOrderByNomAsc())
-                .thenReturn(List.of(new Produit("Attieke", 1000, "plat", true)));
+                .thenReturn(List.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")));
         when(quartierRepository.findByActifTrueOrderByOrdreDefautAsc())
                 .thenReturn(List.of(new Quartier("Cocody", "Nord", 5.35, -3.97, 1, true)));
         final String json = "{\"reponse\":\"ok\",\"intention\":\"commande\","

@@ -40,7 +40,7 @@ class CommandeRepositoryTest {
     }
 
     private Produit produit() {
-        return produitRepository.saveAndFlush(new Produit("Attieke", 1000, "plat", true));
+        return produitRepository.saveAndFlush(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg"));
     }
 
     private Commande commandeAvecUneLigne() {

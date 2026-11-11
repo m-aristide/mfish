@@ -80,7 +80,7 @@ class ApiIntegrationTest {
         final String body = mockMvc.perform(post("/api/produits")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"nom\":\"TestProduit\",\"prix\":1000,\"unite\":\"plat\",\"actif\":true}"))
+                        .content("{\"nom\":\"TestProduit\",\"prix\":1000,\"unite\":\"plat\",\"actif\":true,\"image\":\"/images/default-produit.svg\"}"))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
         return JsonPath.read(body, "$.id");

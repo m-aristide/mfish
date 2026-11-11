@@ -82,7 +82,7 @@ class DtoValidationTest {
     void formulaires_valides_acceptes() {
         assertThat(validator.validate(new ClientFormulaire("Awa", "+2250700000001", null,
                 null, null, null, null, null))).isEmpty();
-        assertThat(validator.validate(new ProduitFormulaire("Attieke", 1000, "plat", true))).isEmpty();
+        assertThat(validator.validate(new ProduitFormulaire("Attieke", 1000, "plat", true, null))).isEmpty();
         assertThat(validator.validate(new LigneCommandeFormulaire(UUID.randomUUID(), 2))).isEmpty();
         assertThat(validator.validate(new StatutFormulaire(StatutCommande.PLANIFIEE))).isEmpty();
         assertThat(validator.validate(new ArretFormulaire(StatutArret.LIVRE, 1000))).isEmpty();

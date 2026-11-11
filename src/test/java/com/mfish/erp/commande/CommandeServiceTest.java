@@ -29,7 +29,7 @@ class CommandeServiceTest {
     }
 
     private LigneCommande ligne(long prixUnitaire, int quantite) {
-        return new LigneCommande(new Produit("Produit", prixUnitaire, "piece", true), quantite, prixUnitaire);
+        return new LigneCommande(new Produit("Produit", prixUnitaire, "piece", true, "/images/default-produit.svg"), quantite, prixUnitaire);
     }
 
     private Commande commandeDeTotal(long total) {

@@ -27,6 +27,7 @@
         <form hx-post th:action="@{/tournee/arrets/{id}(id=${arret.id()})}"
               hx-target="#liste-tournee" hx-swap="outerHTML" class="liste-actions" style="margin-top: 0.5rem;">
             <input type="hidden" th:name="${csrf.parameterName}" th:value="${csrf.token}">
+            <input type="hidden" name="date" th:value="${dateSelectionnee}">
             <input type="hidden" name="statut" value="LIVRE">
             <input class="saisie" type="number" name="montant" min="0" th:value="${arret.restant()}"
                    th:attr="aria-label=#{tournee.montant}" style="max-width: 8rem;">
@@ -37,6 +38,7 @@
             <form hx-post th:action="@{/tournee/arrets/{id}(id=${arret.id()})}"
                   hx-target="#liste-tournee" hx-swap="outerHTML">
                 <input type="hidden" th:name="${csrf.parameterName}" th:value="${csrf.token}">
+                <input type="hidden" name="date" th:value="${dateSelectionnee}">
                 <input type="hidden" name="statut" value="ABSENT">
                 <input type="hidden" name="montant" value="0">
                 <button type="submit" class="bouton bouton-petit bouton-danger"
@@ -45,6 +47,7 @@
             <form hx-post th:action="@{/tournee/arrets/{id}(id=${arret.id()})}"
                   hx-target="#liste-tournee" hx-swap="outerHTML">
                 <input type="hidden" th:name="${csrf.parameterName}" th:value="${csrf.token}">
+                <input type="hidden" name="date" th:value="${dateSelectionnee}">
                 <input type="hidden" name="statut" value="REPORTE">
                 <input type="hidden" name="montant" value="0">
                 <button type="submit" class="bouton bouton-petit bouton-secondaire"
