@@ -55,8 +55,8 @@ public interface CommandeRepository extends JpaRepository<Commande, UUID> {
             + "AND (:date IS NULL OR c.dateLivraisonSouhaitee = :date) "
             + "AND (:quartierId IS NULL OR q.id = :quartierId) "
             + "AND (:recherche IS NULL "
-            + "     OR LOWER(cl.nom) LIKE LOWER(CONCAT('%', :recherche, '%')) "
-            + "     OR LOWER(cl.telephone) LIKE LOWER(CONCAT('%', :recherche, '%'))) "
+            + "     OR LOWER(cl.nom) LIKE :recherche "
+            + "     OR LOWER(cl.telephone) LIKE :recherche) "
             + "ORDER BY c.createdAt DESC")
     Page<Commande> rechercher(StatutCommande statut, LocalDate date, UUID quartierId,
                               String recherche, Pageable pageable);

@@ -49,8 +49,11 @@ public class CommandeApplicationService {
     public Page<CommandeDto> rechercher(final StatutCommande statut, final LocalDate date,
                                         final UUID quartierId, final String recherche,
                                         final Pageable pageable) {
+        final String motif = recherche == null || recherche.isBlank()
+                ? null
+                : "%" + recherche.toLowerCase() + "%";
         final Page<Commande> page = commandeRepository.rechercher(statut, date, quartierId,
-                recherche, pageable);
+                motif, pageable);
         return new PageImpl<>(page.getContent().stream().map(CommandeDto::from).toList(),
                 pageable, page.getTotalElements());
     }

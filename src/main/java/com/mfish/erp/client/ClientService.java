@@ -30,7 +30,14 @@ public class ClientService {
     }
 
     public Page<ClientDto> rechercher(final String recherche, final Pageable pageable) {
-        return clientRepository.rechercherActifs(recherche, pageable).map(ClientDto::from);
+        final String motif = motif(recherche);
+        return clientRepository.rechercherActifs(motif, pageable).map(ClientDto::from);
+    }
+
+    private static String motif(final String recherche) {
+        return recherche == null || recherche.isBlank()
+                ? null
+                : "%" + recherche.toLowerCase() + "%";
     }
 
     public ClientDto trouver(final UUID id) {

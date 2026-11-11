@@ -18,8 +18,8 @@ public interface ClientRepository extends JpaRepository<Client, UUID> {
 
     @Query("SELECT c FROM Client c WHERE c.archive = false "
             + "AND (:recherche IS NULL "
-            + "     OR LOWER(c.nom) LIKE LOWER(CONCAT('%', :recherche, '%')) "
-            + "     OR LOWER(c.telephone) LIKE LOWER(CONCAT('%', :recherche, '%'))) "
+            + "     OR LOWER(c.nom) LIKE :recherche "
+            + "     OR LOWER(c.telephone) LIKE :recherche) "
             + "ORDER BY c.nom ASC")
     Page<Client> rechercherActifs(String recherche, Pageable pageable);
 }

@@ -1,0 +1,31 @@
+# Profil de test sur PostgreSQL reel (Testcontainers) : utilise les migrations de production
+# (db/migration) et la validation Hibernate. Aucune datasource : fournie par @ServiceConnection.
+app:
+  timezone: Africa/Abidjan
+  monnaie:
+    devise: FCFA
+  jwt:
+    secret: test-secret-test-secret-test-secret-0123456789
+  admin:
+    password-hash: "{noop}test"
+  chatwoot:
+    base-url: http://localhost:0
+    api-token: test-chatwoot-token
+    account-id: "1"
+    webhook-secret: test-webhook-secret
+  deepseek:
+    api-key: test-deepseek-key
+  routexl:
+    username: test-user
+    password: test-password
+
+spring:
+  threads:
+    virtual:
+      enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
