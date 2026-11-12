@@ -46,6 +46,12 @@ public class Tournee {
         this.date = date;
         this.statut = statut;
     }
+    public Tournee(LocalDate date, StatutTournee statut, Double pointDepartLat, Double pointDepartLng) {
+        this.date = date;
+        this.statut = statut;
+        this.pointDepartLat = pointDepartLat;
+        this.pointDepartLng= pointDepartLng;
+    }
 
     public UUID getId() {
         return id;

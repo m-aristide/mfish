@@ -1,6 +1,7 @@
 package com.mfish.erp.ia;
 
 import com.mfish.erp.client.Client;
+import com.mfish.erp.client.ClientRepository;
 import com.mfish.erp.commande.CommandeService;
 import com.mfish.erp.commande.LigneCommande;
 import com.mfish.erp.commande.ModePaiement;
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,12 +25,16 @@ import org.springframework.stereotype.Service;
 @Service
 public class OrchestrateurIa {
 
+    private static final String MESSAGE_LIEU_A_PRECISER = "Preciser le lieu de livraison";
+
     private final LlmPort llmPort;
     private final PromptBuilder promptBuilder;
     private final ParseurReponseIa parseur;
     private final RapprochementProduits rapprochement;
+    private final RapprochementQuartiers rapprochementQuartiers;
     private final ProduitRepository produitRepository;
     private final QuartierRepository quartierRepository;
+    private final ClientRepository clientRepository;
     private final CommandeService commandeService;
     private final Clock clock;
 
@@ -36,16 +42,20 @@ public class OrchestrateurIa {
                            final PromptBuilder promptBuilder,
                            final ParseurReponseIa parseur,
                            final RapprochementProduits rapprochement,
+                           final RapprochementQuartiers rapprochementQuartiers,
                            final ProduitRepository produitRepository,
                            final QuartierRepository quartierRepository,
+                           final ClientRepository clientRepository,
                            final CommandeService commandeService,
                            final Clock clock) {
         this.llmPort = llmPort;
         this.promptBuilder = promptBuilder;
         this.parseur = parseur;
         this.rapprochement = rapprochement;
+        this.rapprochementQuartiers = rapprochementQuartiers;
         this.produitRepository = produitRepository;
         this.quartierRepository = quartierRepository;
+        this.clientRepository = clientRepository;
         this.commandeService = commandeService;
         this.clock = clock;
     }
@@ -102,25 +112,36 @@ public class OrchestrateurIa {
 
     private void creerCommande(final Client client, final CommandeIa commande,
                                final List<Produit> produits, final List<Quartier> quartiers) {
-        validerQuartier(commande.quartier(), quartiers);
+        final String notes = associerQuartier(client, commande, quartiers);
         final List<RapprochementProduits.ProduitRapproche> rapproches =
                 rapprochement.rapprocher(commande.produits(), produits);
         final List<LigneCommande> lignes = rapproches.stream()
                 .map(r -> new LigneCommande(r.produit(), r.quantite(), r.produit().getPrix()))
                 .toList();
         commandeService.creer(client, lignes, ModePaiement.ESPECES, SourceCommande.WHATSAPP_IA,
-                parseDate(commande.dateSouhaitee()), null);
+                parseDate(commande.dateSouhaitee()), notes);
     }
 
-    private void validerQuartier(final String nom, final List<Quartier> quartiers) {
-        if (nom == null || nom.isBlank()) {
-            return;
+    /**
+     * Associe au client le quartier le plus probable de la base. Si plusieurs quartiers
+     * correspondent, prend le premier et retourne une note demandant de preciser le lieu de
+     * livraison. Leve {@link QuartierInconnuException} si le quartier fourni est introuvable.
+     */
+    private String associerQuartier(final Client client, final CommandeIa commande,
+                                    final List<Quartier> quartiers) {
+        final Optional<RapprochementQuartiers.QuartierRapproche> rapproche =
+                rapprochementQuartiers.rapprocher(commande.quartier(), quartiers);
+        if (rapproche.isEmpty()) {
+            if (commande.quartier() != null && !commande.quartier().isBlank()) {
+                throw new QuartierInconnuException(commande.quartier());
+            }
+            return null;
         }
-        final boolean trouve = quartiers.stream()
-                .anyMatch(quartier -> quartier.getNom().equalsIgnoreCase(nom.trim()));
-        if (!trouve) {
-            throw new QuartierInconnuException(nom);
-        }
+        final RapprochementQuartiers.QuartierRapproche resultat = rapproche.get();
+        client.setQuartier(resultat.quartier());
+        client.setAdresse(commande.adresse());
+        clientRepository.save(client);
+        return resultat.ambigu() ? MESSAGE_LIEU_A_PRECISER : null;
     }
 
     private LocalDate parseDate(final String valeur) {

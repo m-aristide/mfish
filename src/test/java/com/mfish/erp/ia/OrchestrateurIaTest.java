@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.mfish.erp.client.Client;
+import com.mfish.erp.client.ClientRepository;
 import com.mfish.erp.commande.CommandeService;
 import com.mfish.erp.commande.LigneCommande;
 import com.mfish.erp.produit.Produit;
@@ -39,13 +40,17 @@ class OrchestrateurIaTest {
     private QuartierRepository quartierRepository;
 
     @Mock
+    private ClientRepository clientRepository;
+
+    @Mock
     private CommandeService commandeService;
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-11-01T00:00:00Z"), ZoneId.of("UTC"));
 
     private OrchestrateurIa orchestrateur() {
         return new OrchestrateurIa(llmPort, new PromptBuilder(), new ParseurReponseIa(),
-                new RapprochementProduits(), produitRepository, quartierRepository, commandeService, clock);
+                new RapprochementProduits(), new RapprochementQuartiers(),
+                produitRepository, quartierRepository, clientRepository, commandeService, clock);
     }
 
     private Client client() {
@@ -75,6 +80,52 @@ class OrchestrateurIaTest {
         assertThat(captor.getValue()).hasSize(1);
         assertThat(captor.getValue().get(0).getPrixUnitaire()).isEqualTo(1000);
         assertThat(captor.getValue().get(0).getQuantite()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("doit_attribuer_le_premier_quartier_et_annoter_si_ambigu")
+    void doit_attribuer_le_premier_quartier_et_annoter_si_ambigu() {
+        when(produitRepository.findByActifTrueOrderByNomAsc())
+                .thenReturn(List.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")));
+        when(quartierRepository.findByActifTrueOrderByOrdreDefautAsc())
+                .thenReturn(List.of(
+                        new Quartier("Mvan", "Centre", 3.85, 11.50, 0, true),
+                        new Quartier("Mvan", "Sud", 3.86, 11.51, 0, true)));
+        final String json = "{\"reponse\":\"ok\",\"intention\":\"commande\","
+                + "\"commande\":{\"produits\":[{\"nom\":\"Attieke\",\"quantite\":2}],"
+                + "\"quartier\":\"Mvan\",\"adresse\":null,\"dateSouhaitee\":null,\"complet\":true},"
+                + "\"escalade\":false}";
+        when(llmPort.generer(anyString(), anyList())).thenReturn(json);
+
+        final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke a Mvan");
+
+        assertThat(resultat.commandeCreee()).isTrue();
+
+        final ArgumentCaptor<Client> clientCaptor = ArgumentCaptor.forClass(Client.class);
+        final ArgumentCaptor<String> notesCaptor = ArgumentCaptor.forClass(String.class);
+        verify(commandeService).creer(clientCaptor.capture(), any(), any(), any(), any(),
+                notesCaptor.capture());
+        assertThat(notesCaptor.getValue()).isEqualTo("Preciser le lieu de livraison");
+        assertThat(clientCaptor.getValue().getQuartier().getNom()).isEqualTo("Mvan");
+    }
+
+    @Test
+    @DisplayName("doit_escalader_si_quartier_inconnu")
+    void doit_escalader_si_quartier_inconnu() {
+        when(produitRepository.findByActifTrueOrderByNomAsc())
+                .thenReturn(List.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")));
+        when(quartierRepository.findByActifTrueOrderByOrdreDefautAsc())
+                .thenReturn(List.of(new Quartier("Cocody", "Nord", 5.35, -3.97, 1, true)));
+        final String json = "{\"reponse\":\"ok\",\"intention\":\"commande\","
+                + "\"commande\":{\"produits\":[{\"nom\":\"Attieke\",\"quantite\":2}],"
+                + "\"quartier\":\"QuartierInconnu\",\"adresse\":null,\"dateSouhaitee\":null,\"complet\":true},"
+                + "\"escalade\":false}";
+        when(llmPort.generer(anyString(), anyList())).thenReturn(json);
+
+        final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke");
+
+        assertThat(resultat.escalade()).isTrue();
+        assertThat(resultat.commandeCreee()).isFalse();
     }
 
     @Test

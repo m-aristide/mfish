@@ -100,9 +100,5 @@ class ConfigurationPropertiesValidationTest {
         assertThat(validator.validate(new DeepSeekProperties(
                 "https://api.deepseek.com", "key", "deepseek-chat",
                 Duration.ofSeconds(3), Duration.ofSeconds(30), retry()))).isEmpty();
-
-        assertThat(validator.validate(new GeocodingProperties(
-                "nominatim", "https://nominatim.openstreetmap.org",
-                Duration.ofSeconds(3), Duration.ofSeconds(10), retry()))).isEmpty();
     }
 }

@@ -18,7 +18,6 @@ import org.springframework.context.annotation.Configuration;
         ChatwootProperties.class,
         DeepSeekProperties.class,
         RoutexlProperties.class,
-        GeocodingProperties.class,
         WhatsAppProperties.class
 })
 public class ApplicationConfig {

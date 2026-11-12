@@ -13,7 +13,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,7 +34,6 @@ public class TourneeService {
     private final ArretTourneeRepository arretRepository;
     private final CommandeRepository commandeRepository;
     private final RoutingPort routingPort;
-    private final GeocodingPort geocodingPort;
     private final CommandeService commandeService;
     private final Clock clock;
 
@@ -43,14 +41,12 @@ public class TourneeService {
                           final ArretTourneeRepository arretRepository,
                           final CommandeRepository commandeRepository,
                           final RoutingPort routingPort,
-                          final GeocodingPort geocodingPort,
                           final CommandeService commandeService,
                           final Clock clock) {
         this.tourneeRepository = tourneeRepository;
         this.arretRepository = arretRepository;
         this.commandeRepository = commandeRepository;
         this.routingPort = routingPort;
-        this.geocodingPort = geocodingPort;
         this.commandeService = commandeService;
         this.clock = clock;
     }
@@ -66,7 +62,7 @@ public class TourneeService {
 
     public Tournee tourneeParDate(final LocalDate date) {
         return tourneeRepository.findByDate(date)
-                .orElseGet(() -> tourneeRepository.save(new Tournee(date, StatutTournee.BROUILLON)));
+                .orElseGet(() -> tourneeRepository.save(new Tournee(date, StatutTournee.BROUILLON, 3.816110073189516, 11.489151853853572)));
     }
 
     public List<ArretTournee> arrets(final UUID tourneeId) {
@@ -195,12 +191,6 @@ public class TourneeService {
     private Coordonnees coordonnees(final Client client) {
         if (client.getLatitude() != null && client.getLongitude() != null) {
             return new Coordonnees(client.getLatitude(), client.getLongitude());
-        }
-        if (client.getAdresse() != null && !client.getAdresse().isBlank()) {
-            final Optional<Coordonnees> geocode = geocodingPort.geocoder(client.getAdresse());
-            if (geocode.isPresent()) {
-                return geocode.get();
-            }
         }
         if (client.getQuartier() != null
                 && client.getQuartier().getLatitude() != null

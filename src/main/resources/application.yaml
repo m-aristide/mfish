@@ -109,16 +109,6 @@ app:
       initial-delay: 500ms
       multiplier: 2.0
       max-delay: 4s
-  geocoding:
-    provider: ${GEOCODING_PROVIDER:nominatim}
-    base-url: https://nominatim.openstreetmap.org
-    connect-timeout: 3s
-    read-timeout: 10s
-    retry:
-      max-attempts: 2
-      initial-delay: 500ms
-      multiplier: 2.0
-      max-delay: 2s
 
 # Integration officielle WhatsApp Cloud API (Meta). Les secrets sont injectes par
 # variables d'environnement (WHATSAPP_*). Le module est desactive par defaut (enabled=false) :
