@@ -9,10 +9,10 @@ import com.mfish.erp.commun.NotFoundException;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -80,7 +80,9 @@ public class TourneeService {
     /**
      * (Re)calcule la tournee d'une date donnee : construit les arrets a optimiser a partir
      * des commandes a livrer, appelle RouteXL puis replie sur l'optimisation locale en cas
-     * d'echec.
+     * d'echec. Les commandes sans coordonnees exploitables (ni client ni quartier
+     * geolocalise) ne peuvent pas etre optimisees : elles sont ajoutees a la fin de la
+     * tournee, sans heure d'arrivee estimee.
      */
     @Transactional
     public Tournee calculer(final LocalDate date) {
@@ -99,43 +101,59 @@ public class TourneeService {
             return tourneeRepository.save(tournee);
         }
 
-        final List<ArretAOptimiser> arrets = commandes.stream()
-                .map(this::toArretAOptimiser)
-                .filter(Objects::nonNull)
-                .toList();
-
-        if (arrets.isEmpty()) {
-            tournee.setStatut(StatutTournee.BROUILLON);
-            return tourneeRepository.save(tournee);
+        final List<ArretAOptimiser> arrets = new ArrayList<>();
+        final List<Commande> commandesSansCoordonnees = new ArrayList<>();
+        for (final Commande commande : commandes) {
+            final ArretAOptimiser arret = toArretAOptimiser(commande);
+            if (arret == null) {
+                commandesSansCoordonnees.add(commande);
+            } else {
+                arrets.add(arret);
+            }
         }
 
-        final Coordonnees depart = depart(tournee, arrets);
-        final LocalTime heureDepart = tournee.getHeureDepart() == null
-                ? LocalTime.of(8, 0)
-                : tournee.getHeureDepart();
-        final TourneeRoutingInput input = new TourneeRoutingInput(depart, heureDepart, arrets);
-
-        final List<ArretPlanifie> plan = optimiser(input);
+        final List<ArretPlanifie> plan;
+        if (arrets.isEmpty()) {
+            plan = List.of();
+        } else {
+            final Coordonnees depart = depart(tournee, arrets);
+            final LocalTime heureDepart = tournee.getHeureDepart() == null
+                    ? LocalTime.of(8, 0)
+                    : tournee.getHeureDepart();
+            plan = optimiser(new TourneeRoutingInput(depart, heureDepart, arrets));
+        }
 
         final Map<UUID, Commande> commandesParId = commandes.stream()
                 .collect(Collectors.toMap(Commande::getId, Function.identity()));
+        int position = 0;
         for (final ArretPlanifie planifie : plan.stream()
                 .sorted(Comparator.comparingInt(ArretPlanifie::position)).toList()) {
             final Commande commande = commandesParId.get(planifie.commandeId());
             if (commande == null) {
                 continue;
             }
-            final ArretTournee arret = new ArretTournee(tournee, commande, planifie.position(),
-                    StatutArret.A_LIVRER);
-            arret.setHeureEstimee(planifie.heureArrivee());
-            arretRepository.save(arret);
-            if (commande.getStatut() == StatutCommande.A_PLANIFIER) {
-                commandeService.changerStatut(commande, StatutCommande.PLANIFIEE);
-            }
+            enregistrerArret(tournee, commande, position++, planifie.heureArrivee());
+        }
+        for (final Commande commande : commandesSansCoordonnees) {
+            enregistrerArret(tournee, commande, position++, null);
         }
 
         tournee.setStatut(StatutTournee.VALIDEE);
         return tourneeRepository.save(tournee);
+    }
+
+    /**
+     * Enregistre un arret de la tournee et passe la commande en {@code PLANIFIEE} si besoin.
+     * L'heure estimee est {@code null} lorsque l'arret n'a pas pu etre optimise.
+     */
+    private void enregistrerArret(final Tournee tournee, final Commande commande, final int position,
+                                  final LocalTime heureEstimee) {
+        final ArretTournee arret = new ArretTournee(tournee, commande, position, StatutArret.A_LIVRER);
+        arret.setHeureEstimee(heureEstimee);
+        arretRepository.save(arret);
+        if (commande.getStatut() == StatutCommande.A_PLANIFIER) {
+            commandeService.changerStatut(commande, StatutCommande.PLANIFIEE);
+        }
     }
 
     /**
