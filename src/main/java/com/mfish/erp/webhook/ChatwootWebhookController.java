@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChatwootWebhookController {
 
     private static final String HEADER_SIGNATURE = "X-Chatwoot-Signature";
+    private static final String HEADER_HORODATAGE = "X-Chatwoot-Timestamp";
 
     private final SignatureWebhookService signatureService;
     private final ParseurWebhook parseur;
@@ -33,8 +34,9 @@ public class ChatwootWebhookController {
     @PostMapping("/chatwoot")
     public ResponseEntity<Void> recevoir(
             @RequestBody final String corps,
-            @RequestHeader(value = HEADER_SIGNATURE, required = false) final String signature) {
-        if (!signatureService.estValide(corps, signature)) {
+            @RequestHeader(value = HEADER_SIGNATURE, required = false) final String signature,
+            @RequestHeader(value = HEADER_HORODATAGE, required = false) final String horodatage) {
+        if (!signatureService.estValide(corps, signature, horodatage)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         final WebhookPayload payload;

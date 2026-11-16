@@ -25,8 +25,10 @@ public class ParseurWebhook {
                     texte(root, "content"),
                     texte(root.path("conversation"), "id"),
                     texte(root.path("sender"), "type"),
-                    texte(root.path("contact"), "phone_number"),
-                    texte(root.path("contact"), "name"));
+                    premierNonNull(texte(root.path("sender"), "phone_number"),
+                            texte(root.path("contact"), "phone_number")),
+                    premierNonNull(texte(root.path("sender"), "name"),
+                            texte(root.path("contact"), "name")));
         } catch (JacksonException e) {
             throw new WebhookPayloadInvalideException("Payload Chatwoot malforme", e);
         }
@@ -38,5 +40,14 @@ public class ParseurWebhook {
             return null;
         }
         return valeur.asText();
+    }
+
+    /**
+     * Retourne la premiere valeur non nulle. Le payload webhook officiel de Chatwoot expose les
+     * donnees du contact sous {@code sender} ({@code sender.phone_number}, {@code sender.name}),
+     * tandis que les scripts locaux et les tests utilisent historiquement un objet {@code contact}.
+     */
+    private String premierNonNull(final String principal, final String repli) {
+        return principal != null ? principal : repli;
     }
 }

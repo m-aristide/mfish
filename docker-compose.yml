@@ -1,5 +1,21 @@
 name: mfish
 
+# Environnement commun aux services Chatwoot (web + worker).
+x-chatwoot-environnement: &chatwoot-environnement
+  RAILS_ENV: production
+  INSTALLATION_ENV: docker
+  SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY_BASE:-}
+  FRONTEND_URL: ${CHATWOOT_FRONTEND_URL:-http://localhost:3000}
+  POSTGRES_HOST: chatwoot-postgres
+  POSTGRES_USERNAME: chatwoot
+  POSTGRES_PASSWORD: ${CHATWOOT_POSTGRES_PASSWORD:-change-me}
+  POSTGRES_DATABASE: chatwoot
+  REDIS_URL: redis://:${CHATWOOT_REDIS_PASSWORD:-change-me}@redis:6379
+  RAILS_LOG_TO_STDOUT: "true"
+  # Autorise les webhooks vers le reseau local (host.docker.internal, 192.168.x.x).
+  # Reglage de DEVELOPPEMENT : sans lui, la protection SSRF de Chatwoot refuse l'URL.
+  SAFE_FETCH_ALLOW_PRIVATE_NETWORK: "true"
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -55,7 +71,9 @@ services:
       retries: 10
 
   chatwoot-postgres:
-    image: postgres:16-alpine
+    # Chatwoot 4.x requiert l'extension PostgreSQL "vector" (pgvector) pour son schéma.
+    # L'image postgres:16-alpine ne la fournit pas -> utiliser pgvector/pgvector:pg16.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: chatwoot
       POSTGRES_USER: chatwoot
@@ -70,6 +88,9 @@ services:
 
   chatwoot:
     image: chatwoot/chatwoot:latest
+    # L'image par défaut lance "irb" (prévue pour les tâches ponctuelles).
+    # Sans cette commande, le conteneur web s'arrête aussitôt (exit 0).
+    command: ["bundle", "exec", "rails", "s", "-b", "0.0.0.0", "-p", "3000"]
     depends_on:
       chatwoot-postgres:
         condition: service_healthy
@@ -78,15 +99,22 @@ services:
     ports:
       - "3000:3000"
     environment:
-      RAILS_ENV: production
-      SECRET_KEY_BASE: ${CHATWOOT_SECRET_KEY_BASE:-}
-      FRONTEND_URL: ${CHATWOOT_FRONTEND_URL:-http://localhost:3000}
-      POSTGRES_HOST: chatwoot-postgres
-      POSTGRES_USERNAME: chatwoot
-      POSTGRES_PASSWORD: ${CHATWOOT_POSTGRES_PASSWORD:-change-me}
-      POSTGRES_DATABASE: chatwoot
-      REDIS_URL: redis://:${CHATWOOT_REDIS_PASSWORD:-change-me}@redis:6379
-      RAILS_LOG_TO_STDOUT: "true"
+      <<: *chatwoot-environnement
+    volumes:
+      - chatwoot_storage:/app/storage
+
+  # Worker Sidekiq : indispensable pour l'envoi des webhooks et des taches de fond.
+  # Sans ce service, Chatwoot recoit les messages mais ne notifie jamais l'application.
+  chatwoot-worker:
+    image: chatwoot/chatwoot:latest
+    depends_on:
+      chatwoot-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      <<: *chatwoot-environnement
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
     volumes:
       - chatwoot_storage:/app/storage
 
