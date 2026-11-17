@@ -32,11 +32,11 @@ on:
 permissions:
   contents: read
   packages: write
-  # Requis pour enregistrer/restaurer le cache GitHub Actions
-  # (docker/build-push-action avec cache-to / cache-from type=gha).
-  # Sans ce scope, l'export du cache echoue avec :
-  # "cache write denied: token has no writable scopes".
-  actions: write
+  # Lecture du cache GitHub Actions (cache-from type=gha).
+  # Les workflows declenches par "pull_request" disposent d'un cache en
+  # LECTURE SEULE ("Cache mode: read") : exporter du cache (cache-to) y est
+  # impossible, d'ou l'absence de cache-to dans l'etape de build ci-dessous.
+  actions: read
 
 env:
   GHCR_IMAGE: ghcr.io/m-aristide/mfish-app
@@ -76,7 +76,6 @@ jobs:
             ${{ env.GHCR_IMAGE }}:latest
             ${{ env.GHCR_IMAGE }}:${{ github.sha }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Déployer sur le serveur mfish.online
         uses: appleboy/ssh-action@v1.2.0
