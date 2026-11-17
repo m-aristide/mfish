@@ -58,10 +58,11 @@ pointer vers l'image publiée sur ghcr.io.
 
 Sur le serveur (`ssh ansible@mfish.online`), éditer
 `/home/ansible/mfish/docker-compose.prod.yml` et, **uniquement** dans le service
-`mfish-app`, remplacer la construction locale par l'image du registre :
+`app` (dont le `container_name` est `mfish-app`), remplacer la construction
+locale par l'image du registre :
 
 ```yaml
-  mfish-app:
+  app:
     image: ghcr.io/m-aristide/mfish-app:latest
     pull_policy: always
     # build: .                    # <- supprimer / commenter
@@ -121,11 +122,11 @@ login ghcr.io → pull → up → healthcheck.)
 |---|---|
 | `docker login ghcr.io` échoue | Scope `read:packages` manquant sur le `GH_PAT` |
 | `pull` échoue (image introuvable / accès refusé) | L'image est privée et le jeton n'a pas accès au paquet `mfish` |
-| L'application reste DOWN | `docker compose -f docker-compose.prod.yml logs --tail=200 mfish-app` |
-| L'image ne se met pas à jour | Vérifier `pull_policy: always` et que `build:` est bien supprimé dans `mfish-app` |
+| L'application reste DOWN | `docker compose -f docker-compose.prod.yml logs --tail=200 app` |
+| L'image ne se met pas à jour | Vérifier `pull_policy: always` et que `build:` est bien supprimé dans le service `app` |
 | Disque plein (serveur à ~96 %) | `docker system prune -af` puis nettoyer `/home/ansible/cron_output.log` |
 
 > **Rollback** : chaque déploiement publie aussi une image taguée `:<sha>`.
 > Pour revenir à une version antérieure, éditer temporairement
-> `image: ghcr.io/m-aristide/mfish-app:<sha>` dans le service `mfish-app` puis
-> `docker compose -f docker-compose.prod.yml up -d --no-deps mfish-app`.
+> `image: ghcr.io/m-aristide/mfish-app:<sha>` dans le service `app` puis
+> `docker compose -f docker-compose.prod.yml up -d --no-deps app`.

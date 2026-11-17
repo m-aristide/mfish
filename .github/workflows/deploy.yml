@@ -18,7 +18,7 @@
 #                       .env.prod) avec le scope "read:packages"
 #
 # Prérequis ponctuel sur le serveur (une seule fois) : voir
-# docs/DEPLOIEMENT_CD.md — le service "mfish-app" du docker-compose.prod.yml
+# docs/DEPLOIEMENT_CD.md — le service "app" du docker-compose.prod.yml
 # doit référencer "ghcr.io/m-aristide/mfish-app:latest" (et non un build local).
 # =============================================================================
 name: Déploiement (CD)
@@ -32,6 +32,11 @@ on:
 permissions:
   contents: read
   packages: write
+  # Requis pour enregistrer/restaurer le cache GitHub Actions
+  # (docker/build-push-action avec cache-to / cache-from type=gha).
+  # Sans ce scope, l'export du cache echoue avec :
+  # "cache write denied: token has no writable scopes".
+  actions: write
 
 env:
   GHCR_IMAGE: ghcr.io/m-aristide/mfish-app
@@ -88,8 +93,10 @@ jobs:
             set -euo pipefail
             echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
             cd /home/ansible/mfish
-            docker compose -f docker-compose.prod.yml pull mfish-app
-            docker compose -f docker-compose.prod.yml up -d --no-deps mfish-app
+            # Le service applicatif s'appelle "app" dans docker-compose.prod.yml
+            # (son container_name est "mfish-app").
+            docker compose -f docker-compose.prod.yml pull app
+            docker compose -f docker-compose.prod.yml up -d --no-deps app
 
             for i in $(seq 1 30); do
               code="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/actuator/health || true)"
@@ -101,5 +108,5 @@ jobs:
             done
 
             echo "ECHEC : l'application n'est pas UP après redéploiement."
-            docker compose -f docker-compose.prod.yml logs --tail=200 mfish-app
+            docker compose -f docker-compose.prod.yml logs --tail=200 app
             exit 1
