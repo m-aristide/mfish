@@ -1,0 +1,28 @@
+# Profil de developpement local : base PostgreSQL du docker-compose (service "postgres").
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mfish}
+    username: ${SPRING_DATASOURCE_USERNAME:mfish}
+    password: ${SPRING_DATASOURCE_PASSWORD:mfish}
+  # Cache Thymeleaf desactive en developpement pour voir les changements sans redemarrage.
+  thymeleaf:
+    cache: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    com.mfish.erp: DEBUG
+
+# Valeurs de developpement uniquement (jamais utilisees en production).
+app:
+  jwt:
+    secret: dev-only-secret-change-me-0123456789abcdef0123456789
+  admin:
+    password-hash: "{noop}admin123"
+  chatwoot:
+    webhook-secret: dev-webhook-secret

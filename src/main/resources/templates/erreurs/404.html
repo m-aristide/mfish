@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="#{erreur.404} + ' · mfish'">Page introuvable · mfish</title>
+    <link rel="stylesheet" th:href="@{/app.css}">
+</head>
+<body>
+<main class="enveloppe">
+    <div class="carte" style="max-width: 24rem; margin: 4rem auto; text-align: center;">
+        <h1 th:text="#{erreur.404}">Page introuvable</h1>
+        <p class="texte-doux" th:text="#{erreur.404.detail}">La ressource demandee n'existe pas.</p>
+        <a class="bouton" th:href="@{/}" th:text="#{erreur.retour}">Retour au tableau de bord</a>
+    </div>
+</main>
+</body>
+</html>

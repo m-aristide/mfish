@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{dashboard.titre})}"></head>
+<body>
+<header th:replace="~{layout/layout :: haut('tableauDeBord')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div th:replace="~{tableau-de-bord/fragments/cartes :: cartes}"></div>
+    <div class="grille grille-2" style="margin-top: 1rem;">
+        <a class="carte bouton" th:href="@{/tournee}" th:text="#{dashboard.tourneeDuJour}">Tournee du jour</a>
+        <a class="carte bouton" th:href="@{/commandes/nouvelle}" th:text="#{dashboard.nouvelleCommande}">Nouvelle commande</a>
+    </div>
+</main>
+<div th:replace="~{layout/layout :: bas('tableauDeBord')}"></div>
+</body>
+</html>

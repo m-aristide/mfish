@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Démo Chatwoot — mfish</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; }
+    code { background: #f2f2f2; padding: 0.1rem 0.3rem; border-radius: 4px; }
+    .avertissement { color: #a40000; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h1>Démo Chatwoot — mfish</h1>
+  <p>Ouvre la bulle de discussion en bas à droite et envoie un message : l'IA doit répondre.</p>
+
+  <ul>
+    <li>Serveur Chatwoot : <code id="base-url"></code></li>
+    <li>Boîte (website token) : <code id="website-token"></code></li>
+    <li>Contact : <code id="contact-identifier"></code></li>
+  </ul>
+
+  <p id="avertissement" class="avertissement" hidden>
+    Remplacer <code>WEBSITE_TOKEN</code> par le jeton de la boîte « Website » avant d'ouvrir la page.
+  </p>
+
+  <script>
+    // --- À adapter ---------------------------------------------------------
+    // IP LAN du PC (voir docs/CHATWOOT_SETUP.md, section 5) et jeton de la boîte Website.
+    const BASE_URL = 'http://192.168.103.11:3000';
+    const WEBSITE_TOKEN = 'WEBSITE_TOKEN';
+    // Le contact doit exister côté Chatwoot AVEC un numéro de téléphone,
+    // sinon l'application ignore le message (docs/CHATWOOT_SETUP.md, section 6.3).
+    const CONTACT_IDENTIFIER = 'demo-telephone';
+    // -----------------------------------------------------------------------
+
+    document.getElementById('base-url').textContent = BASE_URL;
+    document.getElementById('website-token').textContent = WEBSITE_TOKEN;
+    document.getElementById('contact-identifier').textContent = CONTACT_IDENTIFIER;
+
+    if (WEBSITE_TOKEN === 'WEBSITE_TOKEN') {
+      document.getElementById('avertissement').hidden = false;
+    }
+
+    window.chatwootSettings = { position: 'right', launcherTitle: 'Discuter' };
+
+    (function (d, t) {
+      var g = d.createElement(t);
+      var s = d.getElementsByTagName(t)[0];
+      g.src = BASE_URL + '/packs/js/sdk.js';
+      g.defer = true;
+      g.async = true;
+      s.parentNode.insertBefore(g, s);
+      g.onload = function () {
+        window.chatwootSDK.run({ websiteToken: WEBSITE_TOKEN, baseUrl: BASE_URL });
+      };
+    })(document, 'script');
+
+    window.addEventListener('chatwoot:ready', function () {
+      window.$chatwoot.setUser(CONTACT_IDENTIFIER, {
+        name: 'Client Téléphone',
+        phone_number: '+237650000001'
+      });
+    });
+  </script>
+</body>
+</html>

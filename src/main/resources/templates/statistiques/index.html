@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{stats.titre})}"></head>
+<body>
+<script th:src="@{/vendor/chart.umd.min.js}" defer></script>
+<header th:replace="~{layout/layout :: haut('statistiques')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div class="titre-section">
+        <h1 th:text="#{stats.titre}">Statistiques</h1>
+        <a class="bouton bouton-secondaire" th:href="@{/statistiques/export(debut=${debut}, fin=${fin})}"
+           th:text="#{stats.exporter}">Exporter CSV</a>
+    </div>
+
+    <form class="carte" method="get" th:action="@{/statistiques}">
+        <div class="grille grille-2">
+            <div class="champ">
+                <label class="etiquette" for="debut" th:text="#{stats.debut}">Du</label>
+                <input class="saisie" type="date" id="debut" name="debut" th:value="${debut}">
+            </div>
+            <div class="champ">
+                <label class="etiquette" for="fin" th:text="#{stats.fin}">Au</label>
+                <input class="saisie" type="date" id="fin" name="fin" th:value="${fin}">
+            </div>
+        </div>
+        <button type="submit" class="bouton" th:text="#{action.filtrer}">Filtrer</button>
+    </form>
+
+    <div class="grille grille-3" style="margin-top: 1rem;">
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.caFormate()}">0 FCFA</div>
+            <div class="libelle" th:text="#{stats.ca}">Chiffre d'affaires</div>
+        </div>
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.nbCommandes()}">0</div>
+            <div class="libelle" th:text="#{stats.nbCommandes}">Nombre de commandes</div>
+        </div>
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.tauxLivraison()} + ' %'">0 %</div>
+            <div class="libelle" th:text="#{stats.tauxLivraison}">Taux de livraison</div>
+        </div>
+    </div>
+
+    <h2 th:text="#{stats.topProduits}">Produits les plus vendus</h2>
+    <div class="carte">
+        <div data-chart th:attr="data-chart=${chartDataJson}" data-chart-label="Quantite"></div>
+    </div>
+
+    <h2 th:text="#{stats.quartiersActifs}">Quartiers les plus actifs</h2>
+    <div class="carte">
+        <div class="defilement-horizontal">
+            <table class="tableau">
+                <thead>
+                <tr>
+                    <th th:text="#{client.quartier}">Quartier</th>
+                    <th th:text="#{stats.ca}">Chiffre d'affaires</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="quartier : ${vue.quartiers()}">
+                    <td th:text="${quartier.nom()}">Quartier</td>
+                    <td th:text="${quartier.caFormate()}">CA</td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(vue.quartiers())}">
+                    <td colspan="2" class="etat-vide" th:text="#{stats.aucune}">Aucune donnee</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<div th:replace="~{layout/layout :: bas('statistiques')}"></div>
+</body>
+</html>

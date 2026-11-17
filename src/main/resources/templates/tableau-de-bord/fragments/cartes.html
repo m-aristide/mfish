@@ -1,0 +1,25 @@
+<div id="cartes" th:fragment="cartes" hx-get="/tableau-de-bord/cartes"
+     hx-trigger="every 60s" hx-swap="outerHTML">
+    <div class="grille grille-4">
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.commandesDuJour()}">0</div>
+            <div class="libelle" th:text="#{dashboard.commandesDuJour}">Commandes du jour</div>
+        </div>
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.aLivrer()}">0</div>
+            <div class="libelle" th:text="#{dashboard.aLivrer}">A livrer</div>
+        </div>
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.livrees()}">0</div>
+            <div class="libelle" th:text="#{dashboard.livrees}">Livrees</div>
+        </div>
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.montantAEncaisserFormate()}">0 FCFA</div>
+            <div class="libelle" th:text="#{dashboard.aEncaisser}">Montant a encaisser</div>
+        </div>
+        <div class="carte stat">
+            <div class="valeur" th:text="${vue.conversations()}">0</div>
+            <div class="libelle" th:text="#{dashboard.conversationsHumain}">Conversations en attente</div>
+        </div>
+    </div>
+</div>

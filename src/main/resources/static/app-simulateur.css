@@ -1,0 +1,317 @@
+/* ============================================================================
+   mfish — Simulateur WhatsApp (interface de test de bout en bout).
+   Rendu plein ecran, palette inspiree de WhatsApp. CSS a la main, pas de style inline.
+   ========================================================================== */
+
+:root {
+    --sim-entete: #075E54;
+    --sim-entete-clair: #128C7E;
+    --sim-fond: #ECE5DD;
+    --sim-fond-motif: #DDD3C9;
+    --sim-sortant: #DCF8C6;
+    --sim-entrant: #FFFFFF;
+    --sim-texte: #1F2937;
+    --sim-texte-doux: #667781;
+    --sim-bordure: #D1D7DB;
+    --sim-rayon: 0.6rem;
+    --sim-ombre: 0 1px 0.5px rgba(0, 0, 0, 0.13);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    height: 100%;
+}
+
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--sim-fond);
+    color: var(--sim-texte);
+    line-height: 1.4;
+}
+
+.simulateur {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 52rem;
+    margin: 0 auto;
+    background: var(--sim-fond);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.18);
+}
+
+/* ------------------------------------------------------------------ Entete */
+.sim-entete {
+    background: var(--sim-entete);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+}
+
+.sim-contact {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.sim-avatar {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    background: var(--sim-entete-clair);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex: none;
+}
+
+.sim-contact-infos {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sim-nom {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sim-telephone {
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.sim-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex: none;
+}
+
+.sim-bouton {
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: transparent;
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-decoration: none;
+    min-height: 2.2rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.sim-bouton:hover {
+    background: rgba(255, 255, 255, 0.14);
+    text-decoration: none;
+}
+
+/* ------------------------------------------------------------------ Config */
+.sim-config {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.6rem 0.85rem;
+    background: var(--sim-fond-motif);
+    border-bottom: 1px solid var(--sim-bordure);
+}
+
+.sim-champ {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.72rem;
+    color: var(--sim-texte-doux);
+}
+
+.sim-champ input {
+    border: 1px solid var(--sim-bordure);
+    border-radius: 0.4rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.9rem;
+    min-height: 2rem;
+    background: #fff;
+}
+
+.sim-conversation-id {
+    margin-left: auto;
+    font-size: 0.72rem;
+    color: var(--sim-texte-doux);
+    font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+    align-self: center;
+}
+
+/* ------------------------------------------------------------------ Messages */
+.sim-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    scroll-behavior: smooth;
+}
+
+.sim-vide {
+    margin: auto;
+    color: var(--sim-texte-doux);
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.bulle {
+    max-width: 78%;
+    padding: 0.5rem 0.7rem;
+    border-radius: var(--sim-rayon);
+    box-shadow: var(--sim-ombre);
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.bulle.sortant {
+    align-self: flex-end;
+    background: var(--sim-sortant);
+    border-top-right-radius: 0;
+}
+
+.bulle.entrant {
+    align-self: flex-start;
+    background: var(--sim-entrant);
+    border-top-left-radius: 0;
+}
+
+.bulle.systeme {
+    align-self: center;
+    background: #FFF3CD;
+    color: #7c5a00;
+    font-size: 0.8rem;
+    box-shadow: none;
+}
+
+/* ------------------------------------------------------------------ Typing */
+.sim-typing {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    background: var(--sim-entrant);
+    align-self: flex-start;
+    margin: 0 0.85rem 0.5rem;
+    border-radius: var(--sim-rayon);
+    border-top-left-radius: 0;
+    box-shadow: var(--sim-ombre);
+    color: var(--sim-texte-doux);
+    font-size: 0.85rem;
+    width: fit-content;
+}
+
+.sim-typing-bulles {
+    display: inline-flex;
+    gap: 0.2rem;
+}
+
+.sim-typing-bulles i {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--sim-texte-doux);
+    display: inline-block;
+    animation: simRebond 1.2s infinite ease-in-out;
+}
+
+.sim-typing-bulles i:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.sim-typing-bulles i:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes simRebond {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-0.3rem); opacity: 1; }
+}
+
+/* ------------------------------------------------------------------ Exemples */
+.sim-exemples {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 0.5rem 0.85rem;
+    background: var(--sim-fond-motif);
+    border-top: 1px solid var(--sim-bordure);
+}
+
+.sim-exemples-titre {
+    font-size: 0.75rem;
+    color: var(--sim-texte-doux);
+    margin-right: 0.25rem;
+}
+
+.sim-puce {
+    border: 1px solid var(--sim-entete-clair);
+    background: transparent;
+    color: var(--sim-entete);
+    border-radius: 999px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+    min-height: 2rem;
+}
+
+.sim-puce:hover {
+    background: rgba(18, 140, 126, 0.1);
+}
+
+/* ------------------------------------------------------------------ Formulaire */
+.sim-formulaire {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 0.85rem;
+    background: var(--sim-fond-motif);
+    border-top: 1px solid var(--sim-bordure);
+}
+
+.sim-saisie {
+    flex: 1;
+    border: 1px solid var(--sim-bordure);
+    border-radius: 999px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.95rem;
+    min-height: 2.6rem;
+    background: #fff;
+}
+
+.sim-envoyer {
+    border: none;
+    background: var(--sim-entete-clair);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 2.6rem;
+}
+
+.sim-envoyer:hover {
+    background: var(--sim-entete);
+}
+
+.cache {
+    display: none !important;
+}
+

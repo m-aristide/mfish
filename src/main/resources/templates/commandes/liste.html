@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{commande.titre})}"></head>
+<body>
+<header th:replace="~{layout/layout :: haut('commandes')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div class="titre-section">
+        <h1 th:text="#{commande.titre}">Commandes</h1>
+        <a class="bouton" th:href="@{/commandes/nouvelle}" th:text="#{commande.nouvelle}">Nouvelle commande</a>
+    </div>
+
+    <form class="carte" hx-get="/commandes" hx-target="#liste-commandes" hx-push-url="false">
+        <div class="grille grille-2">
+            <div class="champ">
+                <label class="etiquette" for="statut" th:text="#{commande.statut}">Statut</label>
+                <select class="saisie" id="statut" name="statut">
+                    <option value="" th:selected="${filtre.statut() == null}" th:text="#{commande.filtre.statut}">Tous</option>
+                    <option th:each="s : ${statuts}" th:value="${s.name()}"
+                            th:selected="${filtre.statut() != null and filtre.statut() == s.name()}"
+                            th:text="#{__${'statut.' + s.name()}__}">Statut</option>
+                </select>
+            </div>
+            <div class="champ">
+                <label class="etiquette" for="quartierId" th:text="#{client.quartier}">Quartier</label>
+                <select class="saisie" id="quartierId" name="quartierId">
+                    <option value="" th:selected="${filtre.quartierId() == null}" th:text="#{commande.filtre.quartier}">Tous</option>
+                    <option th:each="q : ${quartiers}" th:value="${q.id()}"
+                            th:selected="${filtre.quartierId() != null and filtre.quartierId() == q.id()}"
+                            th:text="${q.nom()}">Quartier</option>
+                </select>
+            </div>
+            <div class="champ">
+                <label class="etiquette" for="date" th:text="#{commande.date}">Date</label>
+                <input class="saisie" type="date" id="date" name="date"
+                       th:value="${filtre.date()}">
+            </div>
+            <div class="champ">
+                <label class="etiquette" for="recherche" th:text="#{commande.filtre.recherche}">Recherche</label>
+                <input class="saisie" type="search" id="recherche" name="recherche"
+                       th:value="${filtre.recherche()}">
+            </div>
+        </div>
+        <button type="submit" class="bouton" th:text="#{action.filtrer}">Filtrer</button>
+    </form>
+
+    <div style="margin-top: 1rem;" th:replace="~{commandes/fragments/liste :: liste}"></div>
+</main>
+<div th:replace="~{layout/layout :: bas('commandes')}"></div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{connaissance.titre})}"></head>
+<body>
+<header th:replace="~{layout/layout :: haut('connaissance')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div class="titre-section"><h1 th:text="#{connaissance.titre}">Base de connaissance de l'IA</h1></div>
+
+    <form class="carte" th:object="${formulaire}" th:action="@{/connaissance}" method="post">
+        <div class="champ">
+            <label class="etiquette" for="contenu" th:text="#{connaissance.contenu}">Contenu (Markdown)</label>
+            <textarea class="saisie" id="contenu" th:field="*{contenu}" rows="12"></textarea>
+            <div class="erreur-champ" th:if="${#fields.hasErrors('contenu')}" th:errors="*{contenu}">Erreur</div>
+        </div>
+        <button type="submit" class="bouton" th:text="#{connaissance.enregistrer}">Enregistrer</button>
+    </form>
+
+    <h2 th:text="#{connaissance.historique}">Historique des versions</h2>
+    <div class="carte">
+        <div class="defilement-horizontal">
+            <table class="tableau">
+                <thead>
+                <tr>
+                    <th th:text="#{connaissance.version}">Version</th>
+                    <th th:text="#{connaissance.date}">Date</th>
+                    <th><span class="visually-hidden">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="version : ${versions}">
+                    <td th:text="${version.id()}">Version</td>
+                    <td th:text="${#temporals.format(version.createdAt(), 'dd/MM/yyyy HH:mm')}">Date</td>
+                    <td>
+                        <form th:action="@{/connaissance/versions/{id}/restaurer(id=${version.id()})}" method="post">
+                            <input type="hidden" th:name="${csrf.parameterName}" th:value="${csrf.token}">
+                            <button type="submit" class="bouton bouton-petit bouton-secondaire"
+                                    th:text="#{connaissance.restaurer}">Restaurer</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(versions)}">
+                    <td colspan="3" class="etat-vide" th:text="#{connaissance.aucune}">Aucune version</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <h2 th:text="#{connaissance.test}">Test de l'IA</h2>
+    <div class="carte">
+        <form th:object="${questionForm}" th:action="@{/connaissance/test}" method="post">
+            <div class="champ">
+                <label class="etiquette" for="question" th:text="#{connaissance.question}">Question</label>
+                <input class="saisie" type="text" id="question" th:field="*{question}" required>
+            </div>
+            <button type="submit" class="bouton" th:text="#{connaissance.tester}">Tester</button>
+        </form>
+        <div th:if="${reponse != null}" class="carte" style="margin-top: 1rem; background: var(--couleur-fond);">
+            <div class="libelle" th:text="#{connaissance.reponse}">Reponse de l'IA</div>
+            <p th:text="${reponse}">Reponse</p>
+        </div>
+    </div>
+</main>
+<div th:replace="~{layout/layout :: bas('connaissance')}"></div>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# Profil de test : base H2 (mode PostgreSQL) quand Docker/PostgreSQL est indisponible.
+# Les migrations H2 sont dans db/migration-h2 (dialecte H2). Aucun secret reel.
+app:
+  timezone: Africa/Abidjan
+  monnaie:
+    devise: FCFA
+  jwt:
+    secret: test-secret-test-secret-test-secret-0123456789
+  admin:
+    password-hash: "{noop}test"
+  chatwoot:
+    base-url: http://localhost:0
+    api-token: test-chatwoot-token
+    account-id: "1"
+    webhook-secret: test-webhook-secret
+  deepseek:
+    api-key: test-deepseek-key
+  routexl:
+    username: test-user
+    password: test-password
+
+spring:
+  threads:
+    virtual:
+      enabled: false
+  datasource:
+    url: jdbc:h2:mem:mfish;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+    locations: classpath:db/migration-h2
+

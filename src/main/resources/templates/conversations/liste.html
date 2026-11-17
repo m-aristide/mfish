@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout/layout :: head(#{conversation.titre})}"></head>
+<body>
+<header th:replace="~{layout/layout :: haut('conversations')}"></header>
+<main class="enveloppe">
+    <div th:replace="~{layout/layout :: flash}"></div>
+    <div class="titre-section"><h1 th:text="#{conversation.titre}">Conversations WhatsApp</h1></div>
+
+    <div class="carte">
+        <div class="defilement-horizontal">
+            <table class="tableau">
+                <thead>
+                <tr>
+                    <th th:text="#{client.nom}">Client</th>
+                    <th th:text="#{conversation.mode}">Mode</th>
+                    <th th:text="#{conversation.derniereActivite}">Derniere activite</th>
+                    <th><span class="visually-hidden">Actions</span></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="conversation : ${conversations}">
+                    <td>
+                        <a th:href="@{/conversations/{id}(id=${conversation.id()})}"
+                           th:text="${conversation.clientNom()}">Client</a><br>
+                        <span class="texte-doux" th:text="${conversation.clientTelephone()}">Telephone</span>
+                    </td>
+                    <td>
+                        <span th:classappend="${conversation.mode().name() == 'HUMAIN'} ? 'badge-alerte' : 'badge-info'"
+                              class="badge" th:text="#{__${'statut.' + conversation.mode().name()}__}">Mode</span>
+                    </td>
+                    <td th:text="${conversation.derniereActivite() != null ? #temporals.format(conversation.derniereActivite(), 'dd/MM/yyyy HH:mm') : ''}">Activite</td>
+                    <td><a class="bouton bouton-petit" th:href="@{/conversations/{id}(id=${conversation.id()})}"
+                           th:text="#{action.voir}">Voir</a></td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(conversations)}">
+                    <td colspan="4" class="etat-vide" th:text="#{conversation.aucune}">Aucune conversation</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<div th:replace="~{layout/layout :: bas('conversations')}"></div>
+</body>
+</html>

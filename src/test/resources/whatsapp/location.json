@@ -1,0 +1,26 @@
+{
+  "object": "whatsapp_business_account",
+  "entry": [
+    {
+      "id": "102290129340398",
+      "changes": [
+        {
+          "value": {
+            "messaging_product": "whatsapp",
+            "contacts": [ { "profile": { "name": "Awa" }, "wa_id": "2250700000001" } ],
+            "messages": [
+              {
+                "from": "2250700000001",
+                "id": "wamid.location.123",
+                "timestamp": "1749416383",
+                "type": "location",
+                "location": { "latitude": 5.3549, "longitude": -3.9790 }
+              }
+            ]
+          },
+          "field": "messages"
+        }
+      ]
+    }
+  ]
+}
