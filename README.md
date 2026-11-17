@@ -76,6 +76,9 @@ Gérées uniquement par **Flyway** (`src/main/resources/db/migration`),
 - `Dockerfile` multi-étapes (JDK 25 → JRE 25, utilisateur non root).
 - `docker-compose.yml` : application + PostgreSQL + Chatwoot (+ Redis + sa base).
 - CI GitHub Actions : `.github/workflows/ci.yml` (build + tests + couverture).
+- CD GitHub Actions : `.github/workflows/deploy.yml` (fusion `develop` → `main` ⇒
+  build image → publication `ghcr.io` → déploiement SSH sur `mfish.online`).
+  Voir `docs/DEPLOIEMENT_CD.md`.
 
 ## Interface web d'administration (Thymeleaf)
 
