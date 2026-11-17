@@ -33,7 +33,7 @@ public class WebSecurityConfig {
                 .requestMatchers("/", "/tournee/**", "/commandes/**", "/clients/**")
                     .hasAnyRole("ADMIN", "LIVREUR")
                 .requestMatchers("/produits/**", "/conversations/**", "/connaissance/**",
-                        "/statistiques/**", "/parametres/**").hasRole("ADMIN")
+                        "/statistiques/**", "/parametres/**", "/simulateur/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
             .formLogin(form -> form
                 .loginPage("/connexion")

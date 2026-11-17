@@ -99,9 +99,10 @@ major_de_java() { "$1" -version 2>&1 | sed -n '1s/.*version "\([0-9]*\).*/\1/p';
 trouver_jdk_25() {
   local candidat
   for candidat in "${JAVA_HOME:-}" \
+      "/cygdrive/c/Program Files/Java/jdk-25"* "/cygdrive/c/Program Files/Eclipse Adoptium/jdk-25"* \
       "/c/Program Files/Java/jdk-25"* "/c/Program Files/Eclipse Adoptium/jdk-25"* \
       /usr/lib/jvm/*25* /Library/Java/JavaVirtualMachines/*25*/Contents/Home; do
-    [[ -n "$candidat" && -x "$candidat/bin/javac" ]] || continue
+    [[ -n "$candidat" && ( -x "$candidat/bin/javac" || -x "$candidat/bin/javac.exe" ) ]] || continue
     if [[ "$(major_de_java "$candidat/bin/java")" -ge 25 ]] 2>/dev/null; then
       printf '%s' "$candidat"
       return 0

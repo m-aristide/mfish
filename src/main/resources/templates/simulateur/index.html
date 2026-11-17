@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="#{simulateur.titre}">Simulateur WhatsApp</title>
+    <meta name="_csrf" th:content="${csrf != null ? csrf.token : ''}">
+    <meta name="_csrf_header" th:content="${csrf != null ? csrf.headerName : 'X-CSRF-TOKEN'}">
+    <link rel="stylesheet" th:href="@{/app-simulateur.css}">
+    <script th:src="@{/app-simulateur.js}" defer></script>
+</head>
+<body>
+<main class="simulateur">
+    <header class="sim-entete">
+        <div class="sim-contact">
+            <div class="sim-avatar" aria-hidden="true">WS</div>
+            <div class="sim-contact-infos">
+                <strong id="sim-nom" class="sim-nom">Client Test</strong>
+                <span id="sim-telephone" class="sim-telephone">+237650000001</span>
+            </div>
+        </div>
+        <div class="sim-actions">
+            <button type="button" id="sim-nouvelle" class="sim-bouton sim-bouton-fantome"
+                    th:text="#{simulateur.nouvelle}">Nouvelle conversation</button>
+            <a class="sim-bouton sim-bouton-fantome" th:href="@{/}"
+               th:text="#{simulateur.retour}">Retour</a>
+        </div>
+    </header>
+
+    <div class="sim-config">
+        <label class="sim-champ">
+            <span th:text="#{simulateur.nom}">Nom</span>
+            <input id="sim-champ-nom" type="text" value="Client Test">
+        </label>
+        <label class="sim-champ">
+            <span th:text="#{simulateur.telephone}">Telephone</span>
+            <input id="sim-champ-telephone" type="text" value="+237650000001">
+        </label>
+        <span class="sim-conversation-id" id="sim-conversation-id"></span>
+    </div>
+
+    <div id="sim-messages" class="sim-messages" aria-live="polite">
+        <p class="sim-vide" th:text="#{simulateur.vide}">Aucun message pour l'instant.</p>
+    </div>
+
+    <div id="sim-typing" class="sim-typing cache">
+        <span class="sim-typing-bulles" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span th:text="#{simulateur.typing}">ecrit...</span>
+    </div>
+
+    <div class="sim-exemples" id="sim-exemples">
+        <span class="sim-exemples-titre" th:text="#{simulateur.exemples}">Exemples de messages</span>
+        <button type="button" class="sim-puce"
+                data-message="Bonjour, je voudrais commander 2 poulets">2 poulets</button>
+        <button type="button" class="sim-puce"
+                data-message="Bonjour, quels sont vos produits ?">Catalogue</button>
+        <button type="button" class="sim-puce"
+                data-message="Je veux 1 kg de riz et 3 poissons, livraison a Douala">Commande mixte</button>
+    </div>
+
+    <form id="sim-formulaire" class="sim-formulaire" autocomplete="off">
+        <input id="sim-saisie" class="sim-saisie" type="text" maxlength="2000"
+               aria-label="Ecrire un message" th:placeholder="#{simulateur.saisie}"
+               placeholder="Ecrire un message...">
+        <button type="submit" class="sim-envoyer" th:text="#{simulateur.envoyer}">Envoyer</button>
+    </form>
+</main>
+</body>
+</html>

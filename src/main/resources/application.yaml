@@ -86,6 +86,13 @@ app:
       initial-delay: 200ms
       multiplier: 2.0
       max-delay: 2s
+  simulateur:
+    # Simulateur WhatsApp (test de bout en bout). Active l'interface /simulateur.
+    # mode LOCAL    : webhook rejoue en local, reponses de l'IA en memoire (sans Chatwoot).
+    # mode CHATWOOT : messages via Chatwoot, conversation visible dans Chatwoot (telephone).
+    active: ${APP_SIMULATEUR_ACTIVE:false}
+    mode: ${APP_SIMULATEUR_MODE:LOCAL}
+    inbox: ${APP_SIMULATEUR_INBOX:}
   deepseek:
     base-url: https://api.deepseek.com
     api-key: ${DEEPSEEK_API_KEY:}
