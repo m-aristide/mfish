@@ -40,6 +40,9 @@ public class PromptBuilder {
                 .append("\"quartier\":\"...|null\",\"adresse\":\"...|null\",\"dateSouhaitee\":\"YYYY-MM-DD|null\",")
                 .append("\"complet\":false},\"escalade\":false}\n")
                 .append("Le prix est toujours lu en base, ne l'invente jamais. ")
+                .append("complet vaut true des que le produit, la quantite, le quartier et la date de ")
+                .append("livraison sont connus. L'adresse precise est optionnelle : si le client donne ")
+                .append("un quartier sans adresse, mets adresse a null et complet a true. ")
                 .append("Met escalade a true si tu ne peux pas traiter la demande ou si le client reclame.");
         return prompt.toString();
     }
