@@ -282,20 +282,27 @@ l'heure de départ de la tournée (08:00). Pour la prendre en compte : migration
 `heure_livraison_souhaitee`, champ `heureSouhaitee` dans `CommandeIa` et dans le prompt,
 puis affichage dans `tournee/liste.html`.
 
-### 8.3 Historique de conversation non transmis au modèle
+### 8.3 Commande sans adresse
 
-**Corrigé.** `TraitementMessageService` et `WhatsAppConversationService` transmettaient
-`List.of(message)` comme historique puis le même message en argument : le modèle recevait le
-message courant **deux fois** (joint par `\n`).
+Deux problèmes cumulatifs empêchaient la création d'une commande quand le client donnait
+produit + quantité + quartier + date mais **pas d'adresse précise** :
 
-Impact constaté en production : pour un message de commande sans adresse, DeepSeek répondait
-`complet: false` (il demandait une adresse) au lieu de `complet: true`, et `OrchestrateurIa`
-ignorait alors la commande — même produit, quantité, quartier et date présents.
+1. **Doublon du message** (corrigé) : `TraitementMessageService` et `WhatsAppConversationService`
+   transmettaient `List.of(message)` comme historique puis le même message en argument → le
+   modèle recevait le message deux fois.
+2. **Critère `complet` trop strict** (corrigé) : le prompt ne précisait pas que l'adresse est
+   optionnelle. DeepSeek répondait alors (de façon non déterministe) `complet: false` quand
+   l'adresse manquait, et `OrchestrateurIa` ignorait la commande.
 
-Correctif appliqué : les deux appelants passent désormais un historique **vide** (`List.of()`),
-le message courant n'étant transmis qu'une fois. L'historique de conversation n'est **pas encore
-stocké** (mémoire ou colonne dédiée) : chaque message doit donc rester autonome (produit +
-quantité + quartier + date **+ adresse**).
+Correctifs appliqués :
+
+- les deux appelants passent désormais un historique **vide** (`List.of()`) — le message courant
+  n'est transmis qu'une fois ;
+- le prompt précise que `complet` vaut `true` dès que produit + quantité + quartier + date sont
+  connus, l'adresse précise étant optionnelle (`adresse: null`).
+
+L'historique de conversation n'est **pas encore stocké** (mémoire ou colonne dédiée) : chaque
+message doit rester autonome.
 
 ### 8.4 Lien conversation ↔ client non persisté
 

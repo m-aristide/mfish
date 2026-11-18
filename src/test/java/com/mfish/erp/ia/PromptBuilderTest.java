@@ -45,4 +45,15 @@ class PromptBuilderTest {
 
         assertThat(promptBuilder.limiterContexte(messages)).containsExactly("a", "b", "c");
     }
+
+    @Test
+    @DisplayName("doit_considerer_l_adresse_optionnelle_pour_la_completude")
+    void doit_considerer_l_adresse_optionnelle_pour_la_completude() {
+        final String prompt = promptBuilder.construire(
+                List.of(new Produit("Attieke", 1000, "plat", true, "/images/default-produit.svg")),
+                List.of(new Quartier("Cocody", "Nord", 5.35, -3.97, 1, true)),
+                List.of(LocalDate.of(2026, 11, 1)));
+
+        assertThat(prompt).contains("L'adresse precise est optionnelle", "complet a true");
+    }
 }
