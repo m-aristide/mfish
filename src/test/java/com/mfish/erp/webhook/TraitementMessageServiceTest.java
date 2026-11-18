@@ -20,6 +20,7 @@ import com.mfish.erp.ia.ResultatIa;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -120,5 +121,25 @@ class TraitementMessageServiceTest {
 
         verify(messagingPort).envoyerMessage("conv-1", "reclamation");
         verify(messagingPort).etiqueterConversation("conv-1", "reprendre-main");
+    }
+
+    @Test
+    @DisplayName("ne_duplique_pas_le_message_courant_dans_l_historique_ia")
+    @SuppressWarnings("unchecked")
+    void ne_duplique_pas_le_message_courant_dans_l_historique_ia() {
+        when(conversationRepository.findByChatwootConversationId("conv-1")).thenReturn(Optional.empty());
+        when(conversationRepository.save(any(Conversation.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(clientRepository.findByTelephone("+2250700000001"))
+                .thenReturn(Optional.of(new Client("Awa", "+2250700000001")));
+        when(orchestrateurIa.traiter(any(), anyList(), anyString()))
+                .thenReturn(new ResultatIa("ok", false, false));
+
+        service().traiter(entrant());
+
+        final ArgumentCaptor<List<String>> historique = ArgumentCaptor.forClass((Class) List.class);
+        final ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
+        verify(orchestrateurIa).traiter(any(), historique.capture(), message.capture());
+        assertThat(historique.getValue()).isEmpty();
+        assertThat(message.getValue()).isEqualTo("2 attieke");
     }
 }

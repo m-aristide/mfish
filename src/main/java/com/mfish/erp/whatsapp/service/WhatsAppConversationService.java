@@ -114,7 +114,7 @@ public class WhatsAppConversationService {
     private void repondreParIa(final Client client, final Conversation conversation,
                                final String telephone, final String texte) {
         try {
-            final ResultatIa resultat = orchestrateurIa.traiter(client, List.of(texte), texte);
+            final ResultatIa resultat = orchestrateurIa.traiter(client, List.of(), texte);
             if (!client.isContactable()) {
                 return;
             }

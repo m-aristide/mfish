@@ -63,7 +63,7 @@ public class TraitementMessageService {
                         payload.contactPhone())));
 
         final ResultatIa resultat = orchestrateurIa.traiter(client,
-                List.of(payload.content()), payload.content());
+                List.of(), payload.content());
         messagingPort.envoyerMessage(payload.conversationId(), resultat.reponseAuClient());
         if (resultat.escalade()) {
             basculerEnHumain(payload.conversationId());
