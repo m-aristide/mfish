@@ -180,7 +180,7 @@ public class SimulateurService {
             final JsonNode payload = racine.path("payload");
             if (payload.isArray()) {
                 for (final JsonNode message : payload) {
-                    if (!"outgoing".equalsIgnoreCase(message.path("message_type").asText())) {
+                    if (!estSortant(message.path("message_type"))) {
                         continue;
                     }
                     final long created = message.path("created_at").asLong(0);
@@ -193,6 +193,19 @@ public class SimulateurService {
             LOG.warn("Simulateur : impossible de lire les messages Chatwoot", e);
         }
         return messages;
+    }
+
+    /**
+     * Chatwoot renvoie {@code message_type} sous forme d'entier dans l'API REST
+     * (0 = entrant, 1 = sortant, 2 = activite) et de chaine dans les webhooks :
+     * les deux formes sont acceptees, seule une reponse sortante est retenue.
+     */
+    private boolean estSortant(final JsonNode type) {
+        if (type.isNumber()) {
+            return type.asInt() == 1;
+        }
+        final String valeur = type.asText();
+        return "outgoing".equalsIgnoreCase(valeur) || "1".equals(valeur);
     }
 
     private void verifierConfigurationChatwoot() {

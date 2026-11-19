@@ -122,12 +122,15 @@ class SimulateurServiceTest {
     void lit_les_reponses_ia_de_chatwoot() {
         final SimulateurConversationStore conversationStore = new SimulateurConversationStore();
         conversationStore.enregistrer("sim-1", new SimulateurConversation("src-1", "42"));
+        // L'API REST de Chatwoot renvoie message_type sous forme d'entier :
+        // 0 = entrant, 1 = sortant, 2 = activite.
         server.stubFor(get(urlPathEqualTo("/api/v1/accounts/1/conversations/42/messages"))
                 .willReturn(aResponse().withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("{\"payload\":["
-                                + "{\"content\":\"Bonjour\",\"message_type\":\"incoming\",\"created_at\":1700000000},"
-                                + "{\"content\":\"Votre commande est enregistree\",\"message_type\":\"outgoing\",\"created_at\":1700000001}"
+                                + "{\"content\":\"Bonjour\",\"message_type\":0,\"created_at\":1700000000},"
+                                + "{\"content\":\"Assigned to admin\",\"message_type\":2,\"created_at\":1700000001},"
+                                + "{\"content\":\"Votre commande est enregistree\",\"message_type\":1,\"created_at\":1700000002}"
                                 + "]}")));
 
         final SimulateurService service = new SimulateurService(properties, clock,
@@ -137,6 +140,26 @@ class SimulateurServiceTest {
 
         assertThat(messages).extracting(SimulateurMessage::contenu)
                 .containsExactly("Votre commande est enregistree");
+    }
+
+    @Test
+    @DisplayName("accepte aussi message_type sous forme de chaine (payload webhook)")
+    void accepte_message_type_texte() {
+        final SimulateurConversationStore conversationStore = new SimulateurConversationStore();
+        conversationStore.enregistrer("sim-2", new SimulateurConversation("src-2", "43"));
+        server.stubFor(get(urlPathEqualTo("/api/v1/accounts/1/conversations/43/messages"))
+                .willReturn(aResponse().withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"payload\":["
+                                + "{\"content\":\"Bonjour\",\"message_type\":\"incoming\",\"created_at\":1700000000},"
+                                + "{\"content\":\"Reponse IA\",\"message_type\":\"outgoing\",\"created_at\":1700000001}"
+                                + "]}")));
+
+        final SimulateurService service = new SimulateurService(properties, clock,
+                new SimulateurMessageStore(), conversationStore, "CHATWOOT", "inbox-1", server.port());
+
+        assertThat(service.listerMessages("sim-2")).extracting(SimulateurMessage::contenu)
+                .containsExactly("Reponse IA");
     }
 
     private String hmac(final String corps) {
