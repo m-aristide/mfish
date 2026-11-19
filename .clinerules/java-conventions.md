@@ -33,3 +33,7 @@ You must strictly adhere to the standards of the Java ecosystem (based on Google
 ## 5. Logging and Testing
 - **Logging:** NEVER use `System.out.println()` or `e.printStackTrace()` in application code. Use an official logger (e.g., SLF4J with Logback or Log4j2).
 - **Testing:** Every new feature or bug fix must be accompanied by unit tests (JUnit 5 / Mockito).
+
+
+## 6. Deployment
+- **Github Action** Every deployment must be done via github action. You do changes, you commit, you push, you do the PR to main branch, you approve the PR and merge them. Once merged github action script will deploy.

@@ -68,3 +68,12 @@ l'écran `/commandes` (la commande créée par l'IA).
   redémarrage.
 - Les classes sont couvertes par des tests unitaires (`src/test/java/com/mfish/erp/simulateur`).
 
+## 6. Dépannage (pièges déjà rencontrés)
+
+| Symptôme | Cause | Correction |
+| --- | --- | --- |
+| `POST /simulateur/api/messages` → **403** | `_csrf` vide dans la page : `SimulateurWebController` est hors du périmètre de `WebControllerAdvice` (`com.mfish.erp.web.controller`) | `SimulateurWebController` expose lui-même le jeton via `@ModelAttribute("csrf")` (`CsrfToken`) |
+| Bulle client ok mais **aucune réponse IA** dans l'interface | L'API REST de Chatwoot renvoie `message_type` en **entier** (`0` entrant, `1` sortant, `2` activité) ; filtrer sur la chaîne `"outgoing"` renvoyait une liste vide | `SimulateurService.estSortant` accepte l'entier `1` **et** la chaîne `"outgoing"` (les webhooks utilisent la chaîne) |
+| La réponse existe dans Chatwoot mais pas dans le simulateur | Conversation différente (identifiant `sim-…` régénéré à chaque rechargement de page) ou mauvaise `APP_SIMULATEUR_INBOX` | Garder l'onglet ouvert ; vérifier `APP_SIMULATEUR_INBOX` = `inbox_identifier` de l'inbox API |
+| Après déploiement, le correctif semble absent | `docker-compose.prod.yml` utilise `pull_policy: always` : l'image CI `ghcr.io/m-aristide/mfish-app:latest` est re-téléchargée | Re-taguer l'image locale puis `docker compose up --pull never --force-recreate --no-deps app` (voir `deploy-simulateur.sh`) |
+
