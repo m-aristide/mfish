@@ -15,6 +15,7 @@ import com.mfish.erp.conversation.Conversation;
 import com.mfish.erp.conversation.ConversationRepository;
 import com.mfish.erp.conversation.MessagingPort;
 import com.mfish.erp.conversation.ModeConversation;
+import com.mfish.erp.conversation.RegistreMessagesEmis;
 import com.mfish.erp.ia.OrchestrateurIa;
 import com.mfish.erp.ia.ResultatIa;
 import java.time.Clock;
@@ -46,9 +47,11 @@ class TraitementMessageServiceTest {
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-11-01T00:00:00Z"), ZoneId.of("UTC"));
 
+    private final RegistreMessagesEmis registre = new RegistreMessagesEmis(clock);
+
     private TraitementMessageService service() {
         return new TraitementMessageService(conversationRepository, clientRepository,
-                orchestrateurIa, messagingPort, clock);
+                orchestrateurIa, messagingPort, registre, clock);
     }
 
     private WebhookPayload entrant() {
@@ -78,6 +81,17 @@ class TraitementMessageServiceTest {
         verify(conversationRepository).save(captor.capture());
         assertThat(captor.getValue().getMode()).isEqualTo(ModeConversation.HUMAIN);
         verifyNoInteractions(orchestrateurIa, messagingPort);
+    }
+
+    @Test
+    @DisplayName("doit_ignorer_l_echo_de_la_reponse_ia_sans_basculer_en_humain")
+    void doit_ignorer_l_echo_de_la_reponse_ia_sans_basculer_en_humain() {
+        registre.enregistrer("conv-1", "Oui, nous avons du poisson silure frais.");
+
+        service().traiter(new WebhookPayload("message_created", "evt-2", "outgoing", false,
+                "Oui,  nous avons du poisson silure frais.\n", "conv-1", "user", null, null));
+
+        verifyNoInteractions(conversationRepository, orchestrateurIa, messagingPort);
     }
 
     @Test
