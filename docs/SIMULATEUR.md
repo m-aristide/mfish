@@ -66,6 +66,10 @@ l'écran `/commandes` (la commande créée par l'IA).
   crée le contact/conversation via l'API publique, puis lit les réponses via l'API authentifiée.
 - Les associations de conversations sont en mémoire (`SimulateurConversationStore`) et perdues au
   redémarrage.
+- En mode CHATWOOT, chaque réponse de l'IA est postée avec le jeton d'API : Chatwoot la
+  rediffuse en webhook `message_created`. `RegistreMessagesEmis` mémorise le contenu émis juste
+  avant l'envoi pour que cet écho ne soit pas confondu avec une prise en main humaine (voir
+  § 6).
 - Les classes sont couvertes par des tests unitaires (`src/test/java/com/mfish/erp/simulateur`).
 
 ## 6. Dépannage (pièges déjà rencontrés)
@@ -75,5 +79,6 @@ l'écran `/commandes` (la commande créée par l'IA).
 | `POST /simulateur/api/messages` → **403** | `_csrf` vide dans la page : `SimulateurWebController` est hors du périmètre de `WebControllerAdvice` (`com.mfish.erp.web.controller`) | `SimulateurWebController` expose lui-même le jeton via `@ModelAttribute("csrf")` (`CsrfToken`) |
 | Bulle client ok mais **aucune réponse IA** dans l'interface | L'API REST de Chatwoot renvoie `message_type` en **entier** (`0` entrant, `1` sortant, `2` activité) ; filtrer sur la chaîne `"outgoing"` renvoyait une liste vide | `SimulateurService.estSortant` accepte l'entier `1` **et** la chaîne `"outgoing"` (les webhooks utilisent la chaîne) |
 | La réponse existe dans Chatwoot mais pas dans le simulateur | Conversation différente (identifiant `sim-…` régénéré à chaque rechargement de page) ou mauvaise `APP_SIMULATEUR_INBOX` | Garder l'onglet ouvert ; vérifier `APP_SIMULATEUR_INBOX` = `inbox_identifier` de l'inbox API |
+| **Une seule réponse de l'IA puis plus rien** (bulle `Pas de reponse : verifier DEEPSEEK_API_KEY…` au message suivant) | Chatwoot rediffuse un webhook `message_created` pour les messages **sortants**, y compris ceux que l'application poste avec son jeton d'API : `TraitementMessageService` les prenait pour une prise en main par un agent et basculait la conversation en `HUMAIN` ; l'IA devient alors muette pour tous les messages suivants (aucun appel DeepSeek dans les logs) | `RegistreMessagesEmis` mémorise le contenu émis **avant** l'envoi HTTP ; l'écho webhook correspondant est consommé et ignoré (péremption 10 min). Une réponse d'agent humain (contenu inconnu du registre) bascule toujours en `HUMAIN` |
 | Après déploiement, le correctif semble absent | `docker-compose.prod.yml` utilise `pull_policy: always` : l'image CI `ghcr.io/m-aristide/mfish-app:latest` est re-téléchargée | Re-taguer l'image locale puis `docker compose up --pull never --force-recreate --no-deps app` (voir `deploy-simulateur.sh`) |
 

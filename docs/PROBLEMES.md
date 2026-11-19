@@ -113,3 +113,24 @@ appliqués et le travail restant.
 
 
 
+
+## 12. Simulateur en mode CHATWOOT : une seule réponse IA puis silence
+- **Symptôme** : dans le simulateur en ligne (mode `CHATWOOT`), le premier message reçoit bien
+  une réponse ; au message suivant l'interface affiche « Pas de reponse : verifier
+  DEEPSEEK_API_KEY et les logs (logs/app.log) » et aucun appel DeepSeek n'apparaît dans les
+  logs. En local (mode `LOCAL`) tout fonctionne.
+- **Cause** : Chatwoot rediffuse un webhook `message_created` pour **tous** les messages, y
+  compris les messages sortants postés par l'application via son jeton d'API. Ce payload porte
+  `message_type = outgoing` et `sender.type = user`, ce que `TraitementMessageService`
+  interprétait comme une prise en main par un agent humain : la conversation (table
+  `conversations`) basculait en `HUMAIN` dès la première réponse de l'IA, puis tous les
+  messages suivants étaient ignorés silencieusement. En mode `LOCAL`, aucune conversation
+  Chatwoot n'est créée : l'écho n'existe pas, d'où la différence local / production.
+- **Correction** : `RegistreMessagesEmis` (`com.mfish.erp.conversation`) mémorise le contenu
+  émis par `ChatwootClient` **avant** l'envoi HTTP ; `TraitementMessageService` consomme l'écho
+  correspondant (contenu normalisé, une seule consommation, péremption de 10 min) et ne bascule
+  plus la conversation en `HUMAIN`. Une réponse d'agent réellement humaine, dont le contenu est
+  inconnu du registre, conserve son effet de bascule. Vérification : `scripts/simulateur-multi-tours.sh`.
+- **Travail restant** : rebasculer en `IA` les conversations passées en `HUMAIN` par ce bug
+  (écran `/conversations`).
+

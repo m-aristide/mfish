@@ -6,6 +6,7 @@ import com.mfish.erp.conversation.Conversation;
 import com.mfish.erp.conversation.ConversationRepository;
 import com.mfish.erp.conversation.MessagingPort;
 import com.mfish.erp.conversation.ModeConversation;
+import com.mfish.erp.conversation.RegistreMessagesEmis;
 import com.mfish.erp.ia.OrchestrateurIa;
 import com.mfish.erp.ia.ResultatIa;
 import java.time.Clock;
@@ -24,17 +25,20 @@ public class TraitementMessageService {
     private final ClientRepository clientRepository;
     private final OrchestrateurIa orchestrateurIa;
     private final MessagingPort messagingPort;
+    private final RegistreMessagesEmis registreMessagesEmis;
     private final Clock clock;
 
     public TraitementMessageService(final ConversationRepository conversationRepository,
                                     final ClientRepository clientRepository,
                                     final OrchestrateurIa orchestrateurIa,
                                     final MessagingPort messagingPort,
+                                    final RegistreMessagesEmis registreMessagesEmis,
                                     final Clock clock) {
         this.conversationRepository = conversationRepository;
         this.clientRepository = clientRepository;
         this.orchestrateurIa = orchestrateurIa;
         this.messagingPort = messagingPort;
+        this.registreMessagesEmis = registreMessagesEmis;
         this.clock = clock;
     }
 
@@ -43,7 +47,12 @@ public class TraitementMessageService {
             return;
         }
         if ("outgoing".equals(payload.messageType())) {
-            if ("user".equals(payload.senderType())) {
+            // Chatwoot rediffuse aussi les messages sortants de l'application : sans ce filtre,
+            // la reponse de l'IA serait prise pour une prise en main humaine et la conversation
+            // basculerait en HUMAIN, rendant l'IA muette pour tous les messages suivants.
+            final boolean echoApplication =
+                    registreMessagesEmis.consommerEcho(payload.conversationId(), payload.content());
+            if ("user".equalsIgnoreCase(payload.senderType()) && !echoApplication) {
                 basculerEnHumain(payload.conversationId());
             }
             return;
