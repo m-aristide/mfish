@@ -44,11 +44,13 @@ json() { # json <chaine> : echappe pour une valeur de chaine JSON
 }
 
 compter() { # compter <corps JSON> : nombre de messages (reponses IA) presents
-  grep -o '"contenu"' <<< "$1" | wc -l | tr -d '[:space:]'
+  local total
+  total="$(printf '%s' "$1" | grep -o '"contenu"' | wc -l || true)"
+  printf '%s' "${total//[[:space:]]/}"
 }
 
 echo "=== 0. Pré-vol ($BASE_URL) ==="
-sante="$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL/actuator/health" || true)"
+sante="$(curl -s -m 15 -o /dev/null -w '%{http_code}' "$BASE_URL/actuator/health" || true)"
 if [[ "$sante" != "200" ]]; then
   echo "⚠️  Application injoignable ($BASE_URL) : code $sante."
   exit 1
@@ -56,9 +58,9 @@ fi
 ok "GET /actuator/health -> 200"
 
 echo "=== 1. Connexion administrateur ==="
-curl -s -c "$TMP/cookies.txt" -o "$TMP/connexion.html" "$BASE_URL/connexion"
+curl -s -m 20 -c "$TMP/cookies.txt" -o "$TMP/connexion.html" "$BASE_URL/connexion"
 csrf="$(sed -n 's/.*name="_csrf" value="\([^"]*\)".*/\1/p' "$TMP/connexion.html" | head -n1)"
-code="$(curl -s -b "$TMP/cookies.txt" -c "$TMP/cookies.txt" -o /dev/null -w '%{http_code}' \
+code="$(curl -s -m 20 -b "$TMP/cookies.txt" -c "$TMP/cookies.txt" -o /dev/null -w '%{http_code}' \
   -X POST "$BASE_URL/connexion" \
   --data-urlencode "username=$ADMIN_USER" \
   --data-urlencode "password=$ADMIN_PASSWORD" \
@@ -70,7 +72,7 @@ fi
 ok "connexion administrateur -> 302"
 
 echo "=== 2. Page du simulateur (jeton CSRF) ==="
-curl -s -b "$TMP/cookies.txt" -c "$TMP/cookies.txt" -o "$TMP/simulateur.html" "$BASE_URL/simulateur"
+curl -s -m 20 -b "$TMP/cookies.txt" -c "$TMP/cookies.txt" -o "$TMP/simulateur.html" "$BASE_URL/simulateur"
 csrf_sim="$(sed -n 's/.*name="_csrf" content="\([^"]*\)".*/\1/p' "$TMP/simulateur.html" | head -n1)"
 if [[ -z "$csrf_sim" ]]; then
   echo "⚠️  Jeton CSRF absent de la page /simulateur (simulateur desactive ?)."
@@ -87,13 +89,14 @@ for indice in "${!MESSAGES[@]}"; do
   echo
   echo "--- Tour $tour/${#MESSAGES[@]} : $message"
 
-  avant="$(compter "$(curl -s -b "$TMP/cookies.txt" "$URL_CONVERSATION")")"
+  debut=$SECONDS
+  avant="$(compter "$(curl -s -m 20 -b "$TMP/cookies.txt" "$URL_CONVERSATION" || true)")"
   corps="{\"conversationId\":\"$(json "$CONVERSATION_ID")\",\"telephone\":\"$(json "$TELEPHONE")\",\"nom\":\"$(json "$NOM")\",\"contenu\":\"$(json "$message")\"}"
-  code="$(curl -s -b "$TMP/cookies.txt" -o "$TMP/envoi.json" -w '%{http_code}' \
+  code="$(curl -s -m 60 -b "$TMP/cookies.txt" -o "$TMP/envoi.json" -w '%{http_code}' \
     -X POST "$BASE_URL/simulateur/api/messages" \
     -H 'Content-Type: application/json' \
     -H "X-CSRF-TOKEN: $csrf_sim" \
-    --data "$corps")"
+    --data "$corps" || true)"
   if [[ "$code" != "200" ]]; then
     ko "tour $tour : POST /simulateur/api/messages -> $code"
     continue
@@ -104,7 +107,7 @@ for indice in "${!MESSAGES[@]}"; do
   reponses=""
   while (( SECONDS < limite )); do
     sleep "$INTERVALLE"
-    reponses="$(curl -s -b "$TMP/cookies.txt" "$URL_CONVERSATION")"
+    reponses="$(curl -s -m 20 -b "$TMP/cookies.txt" "$URL_CONVERSATION" || true)"
     apres="$(compter "$reponses")"
     if [[ "$apres" -gt "$avant" ]]; then
       break
@@ -113,7 +116,7 @@ for indice in "${!MESSAGES[@]}"; do
 
   if [[ "$apres" -gt "$avant" ]]; then
     texte="$(sed -n 's/.*"contenu":"\([^"]*\)".*/\1/p' <<< "$reponses" | tail -n1)"
-    ok "tour $tour : réponse IA en ${SECONDS}s ($((apres - avant)) message(s))"
+    ok "tour $tour : réponse IA en $((SECONDS - debut))s ($((apres - avant)) message(s))"
     echo "      IA > $texte"
   else
     ko "tour $tour : aucune réponse après ${DELAI_REPONSE}s (bulle « Pas de reponse »)"
