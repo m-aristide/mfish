@@ -74,6 +74,20 @@ class WebSecurityIntegrationTest {
     }
 
     @Test
+    @DisplayName("livreur refuse sur les quartiers")
+    void livreur_refuse_quartiers() throws Exception {
+        mockMvc.perform(get("/quartiers").with(user("livreur").roles("LIVREUR")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("admin accede a la liste des quartiers")
+    void admin_accede_quartiers() throws Exception {
+        mockMvc.perform(get("/quartiers").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("les en-tetes de securite sont presents")
     void en_tetes_securite_presents() throws Exception {
         mockMvc.perform(get("/connexion"))

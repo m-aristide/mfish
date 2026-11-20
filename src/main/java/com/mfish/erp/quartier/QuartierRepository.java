@@ -9,5 +9,7 @@ public interface QuartierRepository extends JpaRepository<Quartier, UUID> {
 
     Optional<Quartier> findByNom(String nom);
 
+    Optional<Quartier> findByNomIgnoreCase(String nom);
+
     List<Quartier> findByActifTrueOrderByOrdreDefautAsc();
 }

@@ -114,5 +114,16 @@ Ce journal est mis à jour après chaque étape (état, tests exécutés, résul
 - **Contenu** : `WHATSAPP_SETUP.md`, `WHATSAPP_TEMPLATES.md`, `DECISIONS.md`,
   `PROBLEMES.md`, `PROGRESSION.md` à jour.
 
+## Mission Referentiel quartiers (interface web)
+- **État** : terminée.
+- **Contenu** : `QuartierWebController` (`/quartiers` : liste triée par ordre de tournée,
+  création, modification, bascule d'activation) en POST-redirect-GET, `QuartierFormulaire`
+  (Bean Validation : nom obligatoire, latitude/longitude bornées, ordre positif ou nul),
+  `QuartierService.nomDejaUtilise` (refus des doublons de nom sans tenir compte de la casse,
+  quartier en cours de modification exclu), gabarits `templates/quartiers/liste.html` et
+  `formulaire.html`, entrée « Quartiers » dans la navigation (ADMIN), route `/quartiers/**`
+  réservée aux ADMIN, clés i18n `quartier.*` et `validation.*` dans `messages.properties`,
+  tests `QuartierWebControllerTest`, `QuartierServiceTest` (doublons), `DtoValidationTest`,
+  `WebSecurityIntegrationTest` (LIVREUR refusé, ADMIN accepté).
 
 

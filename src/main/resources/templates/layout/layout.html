@@ -38,6 +38,9 @@
         <a th:if="${isAdmin}" th:href="@{/produits}"
            th:classappend="${pageActive == 'produits'} ? 'actif'"
            th:text="#{nav.produits}">Produits</a>
+        <a th:if="${isAdmin}" th:href="@{/quartiers}"
+           th:classappend="${pageActive == 'quartiers'} ? 'actif'"
+           th:text="#{nav.quartiers}">Quartiers</a>
         <a th:if="${isAdmin}" th:href="@{/statistiques}"
            th:classappend="${pageActive == 'statistiques'} ? 'actif'"
            th:text="#{nav.statistiques}">Statistiques</a>
@@ -68,6 +71,8 @@
         <div class="enveloppe carte">
             <a th:if="${isAdmin}" th:href="@{/produits}" class="bouton bouton-petit bouton-secondaire"
                th:text="#{nav.produits}">Produits</a>
+            <a th:if="${isAdmin}" th:href="@{/quartiers}" class="bouton bouton-petit bouton-secondaire"
+               th:text="#{nav.quartiers}">Quartiers</a>
             <a th:if="${isAdmin}" th:href="@{/statistiques}" class="bouton bouton-petit bouton-secondaire"
                th:text="#{nav.statistiques}">Statistiques</a>
             <a th:if="${isAdmin}" th:href="@{/connaissance}" class="bouton bouton-petit bouton-secondaire"

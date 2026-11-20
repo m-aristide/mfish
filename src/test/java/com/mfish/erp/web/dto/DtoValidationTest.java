@@ -78,11 +78,23 @@ class DtoValidationTest {
     }
 
     @Test
+    @DisplayName("quartier : nom vide, coordonnees hors bornes et ordre negatif rejetes")
+    void quartier_invalide_rejete() {
+        final var formulaire = new QuartierFormulaire("", null, 95.0, -190.0, -1, true);
+
+        assertThat(validator.validate(formulaire))
+                .extracting(violation -> violation.getPropertyPath().toString())
+                .contains("nom", "latitude", "longitude", "ordreDefaut");
+    }
+
+    @Test
     @DisplayName("formulaires valides acceptes")
     void formulaires_valides_acceptes() {
         assertThat(validator.validate(new ClientFormulaire("Awa", "+2250700000001", null,
                 null, null, null, null, null))).isEmpty();
         assertThat(validator.validate(new ProduitFormulaire("Attieke", 1000, "plat", true, null))).isEmpty();
+        assertThat(validator.validate(new QuartierFormulaire("Cocody", "Nord", 5.35, -3.97, 1, true)))
+                .isEmpty();
         assertThat(validator.validate(new LigneCommandeFormulaire(UUID.randomUUID(), 2))).isEmpty();
         assertThat(validator.validate(new StatutFormulaire(StatutCommande.PLANIFIEE))).isEmpty();
         assertThat(validator.validate(new ArretFormulaire(StatutArret.LIVRE, 1000))).isEmpty();

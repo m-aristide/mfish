@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class QuartierServiceTest {
@@ -59,5 +60,32 @@ class QuartierServiceTest {
         when(quartierRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service().trouver(id)).isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("doit_signaler_un_nom_deja_utilise")
+    void doit_signaler_un_nom_deja_utilise() {
+        when(quartierRepository.findByNomIgnoreCase("Cocody"))
+                .thenReturn(Optional.of(new Quartier("Cocody", "Nord", 5.35, -3.97, 1, true)));
+
+        assertThat(service().nomDejaUtilise("Cocody", null)).isTrue();
+    }
+
+    @Test
+    @DisplayName("doit_accepter_un_nom_libre")
+    void doit_accepter_un_nom_libre() {
+        when(quartierRepository.findByNomIgnoreCase("Yopougon")).thenReturn(Optional.empty());
+
+        assertThat(service().nomDejaUtilise("Yopougon", null)).isFalse();
+    }
+
+    @Test
+    @DisplayName("doit_ignorer_le_quartier_en_cours_de_modification")
+    void doit_ignorer_le_quartier_en_cours_de_modification() {
+        final Quartier existant = new Quartier("Cocody", "Nord", 5.35, -3.97, 1, true);
+        ReflectionTestUtils.setField(existant, "id", id);
+        when(quartierRepository.findByNomIgnoreCase("Cocody")).thenReturn(Optional.of(existant));
+
+        assertThat(service().nomDejaUtilise("Cocody", id)).isFalse();
     }
 }
