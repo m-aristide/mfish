@@ -221,4 +221,39 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
   (`/{version}/{phoneNumberId}/messages`).
 - **Raison** : la version Graph évolue ; consigne explicite de non-figeage.
 
+## Décisions (mémoire de conversation / commande)
+
+### 34. État de commande structuré persisté par conversation (`order_state`)
+- **Choix** : nouvelle colonne `conversations.order_state` de type `text` (JSON sérialisé par
+  `EtatCommandeJson`), et non un modèle relationnel produits/quartiers. Le contenu décrit
+  `lignes`, `quartier`, `adresse`, `dateLivraison`, `heureLivraison`, `statut` et expose
+  `champsManquants` (dérivé) pour le diagnostic.
+- **Raison** : la mémoire doit survivre aux redémarrages, être isolée par conversation et ne pas
+  dépendre d'un dialecte SQL. Le type `text` reste portable PostgreSQL/H2 et un JSON illisible
+  dégrade vers un état vide au lieu de bloquer la conversation.
+
+### 35. Fusion « jamais d'écrasement par du vide »
+- **Choix** : `MemoireCommande.fusionner` ignore les champs vides, remplace une valeur différente
+  (correction du client) et additionne la quantité quand le message contient un marqueur
+  (`ajoute`, `en plus`, `encore`...). Une correction ouvre une nouvelle commande si la date
+  diffère d'une commande déjà confirmée.
+- **Raison** : les sorties du LLM sont partielles ; sans fusion, une réponse incomplète efface
+  les informations déjà collectées, ce qui provoquait les relances de l'IA.
+
+### 36. Question déterministe sur les seuls champs manquants
+- **Choix** : en cours de commande, la question au client est générée à partir de
+  `EtatCommande.champsManquants()` et non du texte du LLM ; le texte du LLM reste utilisé pour
+  les questions commerciales, l'escalade et l'annulation.
+- **Raison** : garantir par construction qu'une information déjà fournie n'est jamais
+  redemandée, indépendamment de la variabilité du modèle.
+
+### 37. Historique complet + escalade après confirmation
+- **Choix** : `HistoriqueConversation` recharge les 12 derniers messages persistés (préfixés
+  `Client :` / `Assistant :`) pour les deux canaux (WhatsApp Cloud API et Chatwoot, qui persiste
+  désormais ses messages dans `whatsapp_messages`) ; une demande de modification sur une
+  commande déjà confirmée est escaladée à un humain.
+- **Raison** : le LLM ne recevait auparavant que le dernier message. Une commande enregistrée
+  n'est pas modifiable par chat dans le domaine (pas de transition d'état dédiée) : un humain
+  reprend la main plutôt que de créer un doublon silencieux.
+
 

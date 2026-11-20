@@ -4,6 +4,9 @@ import com.mfish.erp.client.Client;
 import com.mfish.erp.client.ClientRepository;
 import com.mfish.erp.conversation.Conversation;
 import com.mfish.erp.conversation.ConversationRepository;
+import com.mfish.erp.conversation.EtatCommande;
+import com.mfish.erp.conversation.EtatCommandeJson;
+import com.mfish.erp.conversation.HistoriqueConversation;
 import com.mfish.erp.conversation.ModeConversation;
 import com.mfish.erp.ia.OrchestrateurIa;
 import com.mfish.erp.ia.ResultatIa;
@@ -41,6 +44,7 @@ public class WhatsAppConversationService {
     private final WhatsAppPort whatsAppPort;
     private final OrchestrateurIa orchestrateurIa;
     private final WhatsAppMessageRepository messageRepository;
+    private final HistoriqueConversation historiqueConversation;
     private final WhatsAppMetrics metrics;
     private final Clock clock;
 
@@ -49,6 +53,7 @@ public class WhatsAppConversationService {
                                        final WhatsAppPort whatsAppPort,
                                        final OrchestrateurIa orchestrateurIa,
                                        final WhatsAppMessageRepository messageRepository,
+                                       final HistoriqueConversation historiqueConversation,
                                        final WhatsAppMetrics metrics,
                                        final Clock clock) {
         this.clientRepository = clientRepository;
@@ -56,6 +61,7 @@ public class WhatsAppConversationService {
         this.whatsAppPort = whatsAppPort;
         this.orchestrateurIa = orchestrateurIa;
         this.messageRepository = messageRepository;
+        this.historiqueConversation = historiqueConversation;
         this.metrics = metrics;
         this.clock = clock;
     }
@@ -84,7 +90,7 @@ public class WhatsAppConversationService {
                     Masquage.telephone(telephone));
             return;
         }
-        repondreParIa(client, conversation, telephone, texte);
+        repondreParIa(client, conversation, telephone, texte, message.wamid());
     }
 
     /** Envoie un template proactif uniquement si le client est joignable et n'a pas fait opposition. */
@@ -112,9 +118,17 @@ public class WhatsAppConversationService {
     }
 
     private void repondreParIa(final Client client, final Conversation conversation,
-                               final String telephone, final String texte) {
+                               final String telephone, final String texte,
+                               final String wamidEntrant) {
         try {
-            final ResultatIa resultat = orchestrateurIa.traiter(client, List.of(), texte);
+            final EtatCommande etatCourant =
+                    EtatCommandeJson.depuisJson(conversation.getEtatCommandeJson());
+            final List<String> historique =
+                    historiqueConversation.charger(telephone, wamidEntrant);
+            final ResultatIa resultat =
+                    orchestrateurIa.traiter(client, etatCourant, historique, texte);
+            conversation.setEtatCommandeJson(EtatCommandeJson.versJson(resultat.etat()));
+            conversationRepository.save(conversation);
             if (!client.isContactable()) {
                 return;
             }
