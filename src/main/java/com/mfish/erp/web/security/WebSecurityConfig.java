@@ -32,8 +32,9 @@ public class WebSecurityConfig {
                         "/erreurs/**", "/error", "/favicon.ico").permitAll()
                 .requestMatchers("/", "/tournee/**", "/commandes/**", "/clients/**")
                     .hasAnyRole("ADMIN", "LIVREUR")
-                .requestMatchers("/produits/**", "/conversations/**", "/connaissance/**",
-                        "/statistiques/**", "/parametres/**", "/simulateur/**").hasRole("ADMIN")
+                .requestMatchers("/produits/**", "/quartiers/**", "/conversations/**",
+                        "/connaissance/**", "/statistiques/**", "/parametres/**",
+                        "/simulateur/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
             .formLogin(form -> form
                 .loginPage("/connexion")

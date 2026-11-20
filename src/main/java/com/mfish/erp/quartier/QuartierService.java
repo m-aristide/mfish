@@ -2,6 +2,7 @@ package com.mfish.erp.quartier;
 
 import com.mfish.erp.commun.NotFoundException;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +28,22 @@ public class QuartierService {
         final Quartier quartier = new Quartier(request.nom(), request.zone(), request.latitude(),
                 request.longitude(), request.ordreDefaut(), request.actif());
         return QuartierDto.from(quartierRepository.save(quartier));
+    }
+
+    /**
+     * Indique si un autre quartier porte deja ce nom (comparaison sans tenir compte
+     * de la casse). Utile aux formulaires pour refuser un doublon avec un message clair
+     * plutot qu'une violation de contrainte d'unicite.
+     *
+     * @param nom nom candidat (non nul)
+     * @param idExclu identifiant du quartier en cours de modification, ou {@code null}
+     *     lors d'une creation
+     */
+    public boolean nomDejaUtilise(final String nom, final UUID idExclu) {
+        Objects.requireNonNull(nom, "nom");
+        return quartierRepository.findByNomIgnoreCase(nom)
+                .filter(quartier -> idExclu == null || !idExclu.equals(quartier.getId()))
+                .isPresent();
     }
 
     public QuartierDto modifier(final UUID id, final QuartierRequest request) {
