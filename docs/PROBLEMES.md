@@ -131,6 +131,28 @@ appliqués et le travail restant.
   correspondant (contenu normalisé, une seule consommation, péremption de 10 min) et ne bascule
   plus la conversation en `HUMAIN`. Une réponse d'agent réellement humaine, dont le contenu est
   inconnu du registre, conserve son effet de bascule. Vérification : `scripts/simulateur-multi-tours.sh`.
-- **Travail restant** : rebasculer en `IA` les conversations passées en `HUMAIN` par ce bug
-  (écran `/conversations`).
+- **Travail restant** : néant — les conversations passées en `HUMAIN` par ce bug ont été
+  rebasculées en `IA` en production.
+
+## 13. Rotation du mot de passe admin : hash BCrypt tronqué par l'interpolation Compose
+- **Symptôme** : après remplacement de `APP_ADMIN_PASSWORD_HASH` dans le `.env` de production,
+  la connexion échoue **avec le nouveau comme avec l'ancien** mot de passe (web →
+  `/connexion?erreur`, API `/api/auth/login` → 401), alors que l'application démarre et que
+  `/actuator/health` répond `UP`.
+- **Cause** : Docker Compose interpole les `$` des fichiers `.env`. Le hash écrit brut
+  (`{bcrypt}$2b$12$XCxLAg…`) est réduit à 14 caractères : la partie alphanumérique qui suit le
+  dernier `$` est lue comme un **nom de variable** non définie, remplacée par du vide.
+  `AdminInitializer` recopie ensuite cette valeur tronquée dans la table `utilisateurs` au
+  démarrage : plus aucun mot de passe ne correspond.
+- **Diagnostic** : `docker exec mfish-app printenv APP_ADMIN_PASSWORD_HASH | wc -c` renvoie 15
+  octets (au lieu de 69 : 68 caractères + saut de ligne) ; `docker compose config | grep APP_ADMIN`
+  montre la valeur réellement résolue ; l'empreinte MD5 de la valeur en environnement est égale à
+  celle de la colonne `utilisateurs.password_hash`.
+- **Contournement / correctif** : doubler chaque `$` dans `.env` (`{bcrypt}$$2b$$12$$…`), puis
+  **recréer** le conteneur (`docker compose up -d --no-deps app`) — un `restart` ne relit pas
+  `.env`. Vérifié en production : hash complet en environnement, identique en base, connexion
+  web (`302 → /`) et JWT (`200` + jeton) avec le nouveau mot de passe, ancien mot de passe
+  refusé (`/connexion?erreur`, `401`).
+- **Travail restant** : néant ; procédure documentée dans `docs/DEMARRAGE.md` et `.env.example`.
+
 
