@@ -143,12 +143,41 @@ bash scripts/webhook-chatwoot.sh
 7. **`Unable to rename ...jar to ...jar.original`** pendant la compilation : le jar est verrouillé
    par une instance en cours. `start.sh` arrête désormais l'application avant de recompiler ;
    sinon `bash scripts/stop.sh` puis relancer.
+8. **Connexion administrateur refusée après avoir renseigné `APP_ADMIN_PASSWORD_HASH`** (web →
+   `/connexion?erreur`, API `/api/auth/login` → 401, **y compris avec l'ancien mot de passe**) :
+   Docker Compose interpole les `$` lus dans `.env`. Un hash collé brut (`{bcrypt}$2b$12$XCxL...`)
+   est tronqué à `{bcrypt}$2b$12` : la partie alphanumérique qui suit le dernier `$` est lue comme
+   un nom de variable non définie, remplacée par du vide, et `AdminInitializer` recopie cette
+   valeur tronquée dans `utilisateurs` au démarrage. **Doubler chaque `$`** :
+   `APP_ADMIN_PASSWORD_HASH={bcrypt}$$2b$$12$$XCxL...`, puis **recréer** le conteneur
+   (`docker compose up -d --no-deps app` ; un `restart` ne relit pas `.env`).
+   Contrôle : `docker exec <conteneur> printenv APP_ADMIN_PASSWORD_HASH | wc -c` doit renvoyer 69
+   (68 caractères + saut de ligne) et `docker compose config | grep APP_ADMIN` doit afficher la
+   valeur complète.
 
 ## Identifiants de connexion (interface web)
 
 - **Utilisateur** : `admin`
 - **Mot de passe** : défini par `app.admin.password-hash` — soit `APP_ADMIN_PASSWORD_HASH`
   (`.env.local`), soit le défaut dev `{noop}admin123` (`application-dev.yaml`).
+
+### Régénérer le hash (rotation du mot de passe)
+
+```bash
+# Génère un mot de passe aléatoire et son hash BCrypt au format Spring ({bcrypt}$2b$12$...)
+python3 -c "import crypt,secrets,string; p=''.join(secrets.choice(string.ascii_letters+string.digits) for _ in range(28)); print(p); print('{bcrypt}'+crypt.crypt(p, crypt.mksalt(crypt.METHOD_BLOWFISH)))"
+# Variante sans Python : htpasswd -bnBC 12 "" 'motdepasse' | tr -d ':\n'   (hash $2y$)
+```
+
+Dans un `.env` lu par Docker Compose, **doubler les `$`** de la valeur avant de la coller :
+
+```bash
+# {bcrypt}$2b$12$XCxL...  ->  {bcrypt}$$2b$$12$$XCxL...
+APP_ADMIN_PASSWORD_HASH={bcrypt}$$2b$$12$$XCxL...
+```
+
+Puis recréer le conteneur (`docker compose up -d --no-deps app`) : `AdminInitializer` resynchronise
+la table `utilisateurs` au démarrage. Un `docker compose restart` **ne relit pas** `.env`.
 
 ## Notes de sécurité
 
