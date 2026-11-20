@@ -43,6 +43,10 @@ public class Conversation {
     @Column(name = "derniere_activite")
     private Instant derniereActivite;
 
+    /** Etat structure de la commande en cours (JSON, voir {@code EtatCommandeJson}). */
+    @Column(name = "order_state")
+    private String etatCommandeJson;
+
     protected Conversation() {
     }
 
@@ -93,5 +97,13 @@ public class Conversation {
 
     public void setDerniereActivite(Instant derniereActivite) {
         this.derniereActivite = derniereActivite;
+    }
+
+    public String getEtatCommandeJson() {
+        return etatCommandeJson;
+    }
+
+    public void setEtatCommandeJson(String etatCommandeJson) {
+        this.etatCommandeJson = etatCommandeJson;
     }
 }

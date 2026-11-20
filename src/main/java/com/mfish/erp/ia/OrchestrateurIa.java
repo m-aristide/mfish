@@ -6,6 +6,8 @@ import com.mfish.erp.commande.CommandeService;
 import com.mfish.erp.commande.LigneCommande;
 import com.mfish.erp.commande.ModePaiement;
 import com.mfish.erp.commande.SourceCommande;
+import com.mfish.erp.conversation.EtatCommande;
+import com.mfish.erp.conversation.StatutEtatCommande;
 import com.mfish.erp.produit.Produit;
 import com.mfish.erp.produit.ProduitRepository;
 import com.mfish.erp.quartier.Quartier;
@@ -19,17 +21,26 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 /**
- * Orchestration du traitement IA : prompt, appel LLM, parsing (avec re-essai), validation
- * (produits, quartier, prix en base) puis creation de commande ou escalade.
+ * Orchestration du traitement IA : prompt enrichi de l'etat de la commande, appel LLM, parsing
+ * (avec re-essai), fusion dans la memoire de commande, validation (produits, quartier, prix en
+ * base) puis creation de commande, question sur les seuls champs manquants ou escalade.
  */
 @Service
 public class OrchestrateurIa {
 
     private static final String MESSAGE_LIEU_A_PRECISER = "Preciser le lieu de livraison";
 
+    private static final String MESSAGE_ECHEC =
+            "Je n'ai pas pu enregistrer votre commande, le commercant va vous recontacter.";
+
+    private static final String MESSAGE_MODIFICATION =
+            "Votre commande est deja enregistree. Je transmets votre demande de modification "
+                    + "au commercant qui va vous recontacter.";
+
     private final LlmPort llmPort;
     private final PromptBuilder promptBuilder;
     private final ParseurReponseIa parseur;
+    private final MemoireCommande memoire;
     private final RapprochementProduits rapprochement;
     private final RapprochementQuartiers rapprochementQuartiers;
     private final ProduitRepository produitRepository;
@@ -41,6 +52,7 @@ public class OrchestrateurIa {
     public OrchestrateurIa(final LlmPort llmPort,
                            final PromptBuilder promptBuilder,
                            final ParseurReponseIa parseur,
+                           final MemoireCommande memoire,
                            final RapprochementProduits rapprochement,
                            final RapprochementQuartiers rapprochementQuartiers,
                            final ProduitRepository produitRepository,
@@ -51,6 +63,7 @@ public class OrchestrateurIa {
         this.llmPort = llmPort;
         this.promptBuilder = promptBuilder;
         this.parseur = parseur;
+        this.memoire = memoire;
         this.rapprochement = rapprochement;
         this.rapprochementQuartiers = rapprochementQuartiers;
         this.produitRepository = produitRepository;
@@ -60,31 +73,76 @@ public class OrchestrateurIa {
         this.clock = clock;
     }
 
-    public ResultatIa traiter(final Client client, final List<String> historique, final String message) {
+    /** Traitement sans memoire de commande (le client repart d'une commande vide). */
+    public ResultatIa traiter(final Client client, final List<String> historique,
+                              final String message) {
+        return traiter(client, EtatCommande.vide(), historique, message);
+    }
+
+    /**
+     * Traitement d'un message en tenant compte de l'etat de commande deja accumule.
+     */
+    public ResultatIa traiter(final Client client, final EtatCommande etatCourant,
+                              final List<String> historique, final String message) {
+        final EtatCommande etat = etatCourant == null ? EtatCommande.vide() : etatCourant;
         final List<Produit> produits = produitRepository.findByActifTrueOrderByNomAsc();
         final List<Quartier> quartiers = quartierRepository.findByActifTrueOrderByOrdreDefautAsc();
-        final String prompt = promptBuilder.construire(produits, quartiers, joursLivraison());
+        final String prompt = promptBuilder.construire(produits, quartiers, joursLivraison(), etat);
         final List<String> tousMessages = new ArrayList<>(historique);
         tousMessages.add(message);
         final List<String> contexte = promptBuilder.limiterContexte(tousMessages);
 
         final ReponseIa reponse = appelerAvecRetry(prompt, contexte);
+        final Intention intention = reponse.intentionEnum();
 
         if (reponse.escalade()) {
-            return new ResultatIa(reponse.reponse(), true, false);
+            return new ResultatIa(reponse.reponse(), true, false, etat);
         }
-        if (reponse.intentionEnum() != Intention.COMMANDE
-                || reponse.commande() == null
-                || !reponse.commande().complet()) {
-            return new ResultatIa(reponse.reponse(), false, false);
+        if (etat.estConfirmee() && intention == Intention.MODIFICATION) {
+            // Une commande enregistree ne se modifie pas par chat : un humain reprend la main.
+            return new ResultatIa(MESSAGE_MODIFICATION, true, false, etat);
+        }
+
+        final EtatCommande fusionne = memoire.fusionner(etat, reponse, message);
+        if (intention == Intention.ANNULATION) {
+            return new ResultatIa(texteOu(reponse.reponse(), "Votre commande est annulee."),
+                    false, false, fusionne);
+        }
+        if (!fusionne.complet()) {
+            // En cours de commande, la question est generee a partir de l'etat : elle ne peut donc
+            // pas redemander une information deja fournie par le client.
+            final boolean enCoursDeCommande = intention == Intention.COMMANDE
+                    || intention == Intention.MODIFICATION;
+            final String reponseFinale = enCoursDeCommande
+                    ? memoire.questionSuivante(fusionne)
+                    : texteOu(reponse.reponse(), memoire.questionSuivante(fusionne));
+            return new ResultatIa(reponseFinale, false, false, fusionne);
+        }
+        if (fusionne.estConfirmee()) {
+            return new ResultatIa(memoire.recapitulatif(fusionne), false, false, fusionne);
+        }
+        if (!commandeDemandee(intention, message)) {
+            return new ResultatIa(memoire.recapitulatifAConfirmer(fusionne), false, false, fusionne);
         }
         try {
-            creerCommande(client, reponse.commande(), produits, quartiers);
-            return new ResultatIa(reponse.reponse(), false, true);
+            creerCommande(client, memoire.versCommandeIa(fusionne), produits, quartiers);
+            final EtatCommande confirmee = fusionne.avecStatut(StatutEtatCommande.CONFIRMEE);
+            return new ResultatIa(texteOu(reponse.reponse(), memoire.recapitulatif(confirmee)),
+                    false, true, confirmee);
         } catch (ProduitInconnuException | ProduitAmbiguException | QuartierInconnuException e) {
-            return new ResultatIa("Je n'ai pas pu enregistrer votre commande, le commercant va vous recontacter.",
-                    true, false);
+            return new ResultatIa(MESSAGE_ECHEC, true, false, fusionne);
         }
+    }
+
+    /** Vrai si le client exprime une commande ou valide le recapitulatif propose. */
+    private boolean commandeDemandee(final Intention intention, final String message) {
+        return intention == Intention.COMMANDE
+                || intention == Intention.MODIFICATION
+                || memoire.estConfirmation(message);
+    }
+
+    private static String texteOu(final String texte, final String defaut) {
+        return texte == null || texte.isBlank() ? defaut : texte;
     }
 
     private List<LocalDate> joursLivraison() {

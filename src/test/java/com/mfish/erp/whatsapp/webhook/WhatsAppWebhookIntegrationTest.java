@@ -136,7 +136,7 @@ class WhatsAppWebhookIntegrationTest {
     @Test
     @DisplayName("doit_traiter_un_message_valide_de_bout_en_bout")
     void doit_traiter_un_message_valide_de_bout_en_bout() throws Exception {
-        when(orchestrateurIa.traiter(any(), anyList(), anyString()))
+        when(orchestrateurIa.traiter(any(), any(), anyList(), anyString()))
                 .thenReturn(new ResultatIa("ok", false, false));
         when(whatsAppPort.envoyerTexte(anyString(), anyString())).thenReturn("wamid.out.1");
 
@@ -158,7 +158,7 @@ class WhatsAppWebhookIntegrationTest {
     @Test
     @DisplayName("doit_ignorer_un_doublon_de_wamid")
     void doit_ignorer_un_doublon_de_wamid() throws Exception {
-        when(orchestrateurIa.traiter(any(), anyList(), anyString()))
+        when(orchestrateurIa.traiter(any(), any(), anyList(), anyString()))
                 .thenReturn(new ResultatIa("ok", false, false));
         when(whatsAppPort.envoyerTexte(anyString(), anyString())).thenReturn("wamid.out.1");
 
@@ -221,7 +221,7 @@ class WhatsAppWebhookIntegrationTest {
     @Test
     @DisplayName("doit_escalader_en_mode_humain_sur_panne_ia")
     void doit_escalader_en_mode_humain_sur_panne_ia() throws Exception {
-        when(orchestrateurIa.traiter(any(), anyList(), anyString()))
+        when(orchestrateurIa.traiter(any(), any(), anyList(), anyString()))
                 .thenThrow(new RuntimeException("panne IA"));
 
         final byte[] corps = lire("text.json");
@@ -239,7 +239,7 @@ class WhatsAppWebhookIntegrationTest {
     @Test
     @DisplayName("ne_fuit_ni_jeton_ni_numero_dans_les_logs")
     void ne_fuit_ni_jeton_ni_numero_dans_les_logs(final CapturedOutput output) throws Exception {
-        when(orchestrateurIa.traiter(any(), anyList(), anyString()))
+        when(orchestrateurIa.traiter(any(), any(), anyList(), anyString()))
                 .thenReturn(new ResultatIa("ok", false, false));
         when(whatsAppPort.envoyerTexte(anyString(), anyString())).thenReturn("wamid.out.1");
 
@@ -280,4 +280,5 @@ class WhatsAppWebhookIntegrationTest {
         }
     }
 }
+
 

@@ -4,17 +4,25 @@ import com.mfish.erp.client.Client;
 import com.mfish.erp.client.ClientRepository;
 import com.mfish.erp.conversation.Conversation;
 import com.mfish.erp.conversation.ConversationRepository;
+import com.mfish.erp.conversation.EtatCommandeJson;
+import com.mfish.erp.conversation.HistoriqueConversation;
 import com.mfish.erp.conversation.MessagingPort;
 import com.mfish.erp.conversation.ModeConversation;
 import com.mfish.erp.conversation.RegistreMessagesEmis;
 import com.mfish.erp.ia.OrchestrateurIa;
 import com.mfish.erp.ia.ResultatIa;
+import com.mfish.erp.whatsapp.webhook.DirectionMessage;
+import com.mfish.erp.whatsapp.webhook.StatutMessage;
+import com.mfish.erp.whatsapp.webhook.TypeMessage;
+import com.mfish.erp.whatsapp.webhook.WhatsAppMessage;
+import com.mfish.erp.whatsapp.webhook.WhatsAppMessageRepository;
 import java.time.Clock;
-import java.util.List;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /**
- * Traitement asynchrone d'un message entrant : bascule IA/humain, appel du module IA et reponse.
+ * Traitement asynchrone d'un message entrant : bascule IA/humain, appel du module IA (avec
+ * historique et memoire de commande), reponse et persistance de l'etat de la conversation.
  */
 @Service
 public class TraitementMessageService {
@@ -26,6 +34,8 @@ public class TraitementMessageService {
     private final OrchestrateurIa orchestrateurIa;
     private final MessagingPort messagingPort;
     private final RegistreMessagesEmis registreMessagesEmis;
+    private final HistoriqueConversation historiqueConversation;
+    private final WhatsAppMessageRepository messageRepository;
     private final Clock clock;
 
     public TraitementMessageService(final ConversationRepository conversationRepository,
@@ -33,12 +43,16 @@ public class TraitementMessageService {
                                     final OrchestrateurIa orchestrateurIa,
                                     final MessagingPort messagingPort,
                                     final RegistreMessagesEmis registreMessagesEmis,
+                                    final HistoriqueConversation historiqueConversation,
+                                    final WhatsAppMessageRepository messageRepository,
                                     final Clock clock) {
         this.conversationRepository = conversationRepository;
         this.clientRepository = clientRepository;
         this.orchestrateurIa = orchestrateurIa;
         this.messagingPort = messagingPort;
         this.registreMessagesEmis = registreMessagesEmis;
+        this.historiqueConversation = historiqueConversation;
+        this.messageRepository = messageRepository;
         this.clock = clock;
     }
 
@@ -71,16 +85,43 @@ public class TraitementMessageService {
                         payload.contactName() == null ? "Client" : payload.contactName(),
                         payload.contactPhone())));
 
+        final String texte = payload.content() == null ? "" : payload.content();
+        final String wamidEntrant = wamidEntrant(payload);
+        enregistrerMessageEntrant(payload, texte);
         final ResultatIa resultat = orchestrateurIa.traiter(client,
-                List.of(), payload.content());
+                EtatCommandeJson.depuisJson(conversation.getEtatCommandeJson()),
+                historiqueConversation.charger(payload.contactPhone(), wamidEntrant),
+                texte);
         messagingPort.envoyerMessage(payload.conversationId(), resultat.reponseAuClient());
+        enregistrerMessageSortant(payload, resultat.reponseAuClient());
         if (resultat.escalade()) {
             basculerEnHumain(payload.conversationId());
             messagingPort.etiqueterConversation(payload.conversationId(), ETIQUETTE_REPRENDRE_MAIN);
         }
 
+        conversation.setEtatCommandeJson(EtatCommandeJson.versJson(resultat.etat()));
         conversation.setDerniereActivite(clock.instant());
         conversationRepository.save(conversation);
+    }
+
+    /** Identifiant local du message entrant : les evenements Chatwoot n'ont pas de wamid. */
+    static String wamidEntrant(final WebhookPayload payload) {
+        return "chatwoot-" + payload.id();
+    }
+
+    private void enregistrerMessageEntrant(final WebhookPayload payload, final String texte) {
+        final String wamid = wamidEntrant(payload);
+        if (messageRepository.existsByWamid(wamid)) {
+            return;
+        }
+        messageRepository.save(new WhatsAppMessage(wamid, DirectionMessage.ENTRANT,
+                payload.contactPhone(), TypeMessage.TEXTE, texte, StatutMessage.RECU, null, null));
+    }
+
+    private void enregistrerMessageSortant(final WebhookPayload payload, final String contenu) {
+        messageRepository.save(new WhatsAppMessage("chatwoot-out-" + UUID.randomUUID(),
+                DirectionMessage.SORTANT, payload.contactPhone(), TypeMessage.TEXTE, contenu,
+                StatutMessage.ENVOYE, null, null));
     }
 
     private Conversation trouverOuCreer(final String chatwootConversationId) {
