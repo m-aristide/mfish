@@ -13,6 +13,7 @@ import com.mfish.erp.client.Client;
 import com.mfish.erp.client.ClientRepository;
 import com.mfish.erp.commande.CommandeService;
 import com.mfish.erp.commande.LigneCommande;
+import com.mfish.erp.commun.AppelExterneException;
 import com.mfish.erp.conversation.EtatCommande;
 import com.mfish.erp.conversation.LigneEtatCommande;
 import com.mfish.erp.conversation.StatutEtatCommande;
@@ -256,6 +257,23 @@ class OrchestrateurIaTest {
                 "\"Attieke\"", "2", "\"QuartierFantome\"", "\"2026-11-19\"", "commande"));
 
         final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke");
+
+        assertThat(resultat.commandeCreee()).isFalse();
+        assertThat(resultat.escalade()).isTrue();
+        verify(quartierRepository, never()).save(any(Quartier.class));
+        verify(commandeService, never()).creer(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("doit_escalader_quand_le_geocodage_est_indisponible")
+    void doit_escalader_quand_le_geocodage_est_indisponible() {
+        catalogue();
+        when(geocodingPort.geocoder(anyString()))
+                .thenThrow(new AppelExterneException("Google Geocoding a repondu 403 FORBIDDEN"));
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
+                "\"Attieke\"", "2", "\"Bastos\"", "\"2026-11-19\"", "commande"));
+
+        final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke a Bastos");
 
         assertThat(resultat.commandeCreee()).isFalse();
         assertThat(resultat.escalade()).isTrue();

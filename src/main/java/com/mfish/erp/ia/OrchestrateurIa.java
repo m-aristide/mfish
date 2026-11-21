@@ -6,6 +6,7 @@ import com.mfish.erp.commande.CommandeService;
 import com.mfish.erp.commande.LigneCommande;
 import com.mfish.erp.commande.ModePaiement;
 import com.mfish.erp.commande.SourceCommande;
+import com.mfish.erp.commun.AppelExterneException;
 import com.mfish.erp.conversation.EtatCommande;
 import com.mfish.erp.conversation.StatutEtatCommande;
 import com.mfish.erp.produit.Produit;
@@ -20,6 +21,8 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /**
@@ -29,6 +32,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class OrchestrateurIa {
+
+    private static final Logger LOG = LoggerFactory.getLogger(OrchestrateurIa.class);
 
     private static final String MESSAGE_LIEU_A_PRECISER = "Preciser le lieu de livraison";
 
@@ -209,14 +214,14 @@ public class OrchestrateurIa {
     /**
      * Quartier absent de la base : geocodage Google puis enregistrement du nouveau quartier
      * (avec ses coordonnees) afin qu'il ne soit plus jamais redemande. Retourne {@code null}
-     * (pas d'ambiguite) ; leve {@link QuartierInconnuException} si le geocodage echoue.
+     * (pas d'ambiguite) ; leve {@link QuartierInconnuException} si le geocodage echoue ou
+     * est indisponible.
      */
     private String associerQuartierInconnu(final Client client, final CommandeIa commande) {
         if (commande.quartier() == null || commande.quartier().isBlank()) {
             return null;
         }
-        final Optional<Coordonnees> coordonnees =
-                geocodingPort.geocoder(commande.quartier() + CONTEXTE_GEOCODAGE);
+        final Optional<Coordonnees> coordonnees = geocoder(commande.quartier());
         if (coordonnees.isEmpty()) {
             throw new QuartierInconnuException(commande.quartier());
         }
@@ -224,6 +229,21 @@ public class OrchestrateurIa {
                 coordonnees.get().latitude(), coordonnees.get().longitude(), 0, true);
         associer(client, quartierRepository.save(nouveau), commande.adresse());
         return null;
+    }
+
+    /**
+     * Geocode un quartier en ajoutant le contexte geographique. Une indisponibilite du
+     * fournisseur (quota, facturation non activee, panne reseau) est traitee comme
+     * « aucun resultat » : la commande est escaladee au commercant plutot que perdue
+     * silencieusement, car le traitement est execute de facon asynchrone.
+     */
+    private Optional<Coordonnees> geocoder(final String quartier) {
+        try {
+            return geocodingPort.geocoder(quartier + CONTEXTE_GEOCODAGE);
+        } catch (AppelExterneException e) {
+            LOG.warn("Geocodage indisponible, escalade humaine", e);
+            return Optional.empty();
+        }
     }
 
     private void associer(final Client client, final Quartier quartier, final String adresse) {
