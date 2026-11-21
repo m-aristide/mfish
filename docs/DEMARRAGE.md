@@ -25,7 +25,7 @@ Noms des variables (uniquement les noms, jamais les valeurs ici) :
 | Chatwoot (WhatsApp) | `CHATWOOT_BASE_URL`, `CHATWOOT_API_TOKEN`, `CHATWOOT_ACCOUNT_ID`, `CHATWOOT_WEBHOOK_SECRET` |
 | DeepSeek (IA) | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` |
 | RouteXL (tournée) | `ROUTEXL_USERNAME`, `ROUTEXL_PASSWORD`, `ROUTEXL_MAX_STOPS` |
-| Géocodage | `GEOCODING_PROVIDER` |
+| Géocodage (Google) | `GOOGLE_GEOCODING_API` |
 | Compose (PostgreSQL) | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` |
 
 ### Valeurs de développement (profil `dev`)
