@@ -116,6 +116,18 @@ app:
       initial-delay: 500ms
       multiplier: 2.0
       max-delay: 4s
+  geocoding:
+    # Resolution des quartiers inconnus via l'API Google Geocoding.
+    # Cle injectee par variable d'environnement (voir .env.example).
+    base-url: ${GOOGLE_GEOCODING_BASE_URL:https://maps.googleapis.com}
+    api-key: ${GOOGLE_GEOCODING_API:}
+    connect-timeout: 3s
+    read-timeout: 10s
+    retry:
+      max-attempts: 2
+      initial-delay: 500ms
+      multiplier: 2.0
+      max-delay: 4s
 
 # Integration officielle WhatsApp Cloud API (Meta). Les secrets sont injectes par
 # variables d'environnement (WHATSAPP_*). Le module est desactive par defaut (enabled=false) :

@@ -20,11 +20,14 @@ import com.mfish.erp.produit.Produit;
 import com.mfish.erp.produit.ProduitRepository;
 import com.mfish.erp.quartier.Quartier;
 import com.mfish.erp.quartier.QuartierRepository;
+import com.mfish.erp.tournee.Coordonnees;
+import com.mfish.erp.tournee.GeocodingPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +51,9 @@ class OrchestrateurIaTest {
     private QuartierRepository quartierRepository;
 
     @Mock
+    private GeocodingPort geocodingPort;
+
+    @Mock
     private ClientRepository clientRepository;
 
     @Mock
@@ -59,7 +65,8 @@ class OrchestrateurIaTest {
     private OrchestrateurIa orchestrateur() {
         return new OrchestrateurIa(llmPort, new PromptBuilder(), new ParseurReponseIa(),
                 new MemoireCommande(), new RapprochementProduits(), new RapprochementQuartiers(),
-                produitRepository, quartierRepository, clientRepository, commandeService, clock);
+                geocodingPort, produitRepository, quartierRepository, clientRepository,
+                commandeService, clock);
     }
 
     private Client client() {
@@ -215,5 +222,44 @@ class OrchestrateurIaTest {
         assertThat(resultat.escalade()).isTrue();
         assertThat(resultat.commandeCreee()).isFalse();
         assertThat(resultat.etat().lignes().getFirst().quantite()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("doit_geocoder_et_enregistrer_un_quartier_inconnu")
+    void doit_geocoder_et_enregistrer_un_quartier_inconnu() {
+        catalogue();
+        when(geocodingPort.geocoder(anyString()))
+                .thenReturn(Optional.of(new Coordonnees(3.8667, 11.5167)));
+        when(quartierRepository.save(any(Quartier.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
+                "\"Attieke\"", "2", "\"Bastos\"", "\"2026-11-19\"", "commande"));
+
+        final ResultatIa resultat =
+                orchestrateur().traiter(client(), List.of(), "2 attieke a Bastos");
+
+        assertThat(resultat.commandeCreee()).isTrue();
+
+        final ArgumentCaptor<Quartier> captor = ArgumentCaptor.forClass(Quartier.class);
+        verify(quartierRepository).save(captor.capture());
+        assertThat(captor.getValue().getNom()).isEqualTo("Bastos");
+        assertThat(captor.getValue().getLatitude()).isEqualTo(3.8667);
+        assertThat(captor.getValue().getLongitude()).isEqualTo(11.5167);
+        verify(commandeService).creer(any(), any(), any(), any(), any(), isNull());
+    }
+
+    @Test
+    @DisplayName("doit_escalader_quand_le_geocodage_ne_trouve_rien")
+    void doit_escalader_quand_le_geocodage_ne_trouve_rien() {
+        catalogue();
+        when(geocodingPort.geocoder(anyString())).thenReturn(Optional.empty());
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
+                "\"Attieke\"", "2", "\"QuartierFantome\"", "\"2026-11-19\"", "commande"));
+
+        final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke");
+
+        assertThat(resultat.commandeCreee()).isFalse();
+        assertThat(resultat.escalade()).isTrue();
+        verify(quartierRepository, never()).save(any(Quartier.class));
+        verify(commandeService, never()).creer(any(), any(), any(), any(), any(), any());
     }
 }

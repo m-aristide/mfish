@@ -27,9 +27,15 @@ Ce document consigne les choix effectués en cas d'ambiguïté. Il est complét�
 - **Raison** : plus léger que Resilience4j ; le retry avec backoff est piloté par
   `RetryProperties` (record validé), sans AOP (`RetryTemplate` programmatique).
 
-### 3. Géocodage : Nominatim
-- **Choix** : fournisseur `nominatim` (OpenStreetMap) par défaut, déjà configuré via
-  `app.geocoding.*`. Adresse/quartier → coordonnées GPS, repli sur les coordonnées du quartier.
+### 3. Géocodage : Google Geocoding API
+- **Choix** : **Google Geocoding API** (`app.geocoding.*`, clé `GOOGLE_GEOCODING_API`),
+  implémentée par l'adaptateur `GoogleGeocodingClient` derrière le port `GeocodingPort`.
+- **Usage** : lorsqu'un client indique un quartier absent de la table `quartiers`, l'application
+  le géocode (`<quartier>, Yaoundé, Cameroun`) puis l'enregistre avec ses coordonnées. Le
+  quartier est ensuite servi depuis la base : Google n'est plus jamais sollicité pour ce nom.
+- **Échec** : un statut autre que `OK`/`ZERO_RESULTS` ou une erreur HTTP lève une
+  `AppelExterneException` ; l'absence de résultat laisse la commande non enregistrée (escalade
+  humaine, comme pour un quartier inconnu).
 
 ### 4. Montants monétaires en entiers
 - **Choix** : tous les montants sont des `long` exprimés dans la plus petite unité monétaire

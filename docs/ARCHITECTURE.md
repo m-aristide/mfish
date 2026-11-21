@@ -35,7 +35,7 @@ Client WhatsApp → WhatsApp Business API (Meta Cloud)
 | `MessagingPort` | `ChatwootClient` | lire/envoyer messages, étiqueter conversations |
 | `LlmPort` | `DeepSeekClient` | analyser un message, extraire la commande, rédiger la réponse |
 | `RoutingPort` | `RouteXlClient` | optimiser l'ordre des arrêts, heures d'arrivée |
-| `GeocodingPort` | adaptateur (Nominatim) | adresse/quartier → coordonnées GPS |
+| `GeocodingPort` | `GoogleGeocodingClient` | adresse/quartier → coordonnées GPS |
 | `Clock` | bean injecté | horloge testable |
 
 Chaque adaptateur gère : timeout, retry avec backoff (Spring Retry), exceptions typées,

@@ -12,6 +12,8 @@ import com.mfish.erp.produit.Produit;
 import com.mfish.erp.produit.ProduitRepository;
 import com.mfish.erp.quartier.Quartier;
 import com.mfish.erp.quartier.QuartierRepository;
+import com.mfish.erp.tournee.Coordonnees;
+import com.mfish.erp.tournee.GeocodingPort;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -30,6 +32,9 @@ public class OrchestrateurIa {
 
     private static final String MESSAGE_LIEU_A_PRECISER = "Preciser le lieu de livraison";
 
+    /** Contexte geographique ajoute au quartier avant l'appel a Google Geocoding. */
+    private static final String CONTEXTE_GEOCODAGE = ", Yaoundé, Cameroun";
+
     private static final String MESSAGE_ECHEC =
             "Je n'ai pas pu enregistrer votre commande, le commercant va vous recontacter.";
 
@@ -43,6 +48,7 @@ public class OrchestrateurIa {
     private final MemoireCommande memoire;
     private final RapprochementProduits rapprochement;
     private final RapprochementQuartiers rapprochementQuartiers;
+    private final GeocodingPort geocodingPort;
     private final ProduitRepository produitRepository;
     private final QuartierRepository quartierRepository;
     private final ClientRepository clientRepository;
@@ -55,6 +61,7 @@ public class OrchestrateurIa {
                            final MemoireCommande memoire,
                            final RapprochementProduits rapprochement,
                            final RapprochementQuartiers rapprochementQuartiers,
+                           final GeocodingPort geocodingPort,
                            final ProduitRepository produitRepository,
                            final QuartierRepository quartierRepository,
                            final ClientRepository clientRepository,
@@ -66,6 +73,7 @@ public class OrchestrateurIa {
         this.memoire = memoire;
         this.rapprochement = rapprochement;
         this.rapprochementQuartiers = rapprochementQuartiers;
+        this.geocodingPort = geocodingPort;
         this.produitRepository = produitRepository;
         this.quartierRepository = quartierRepository;
         this.clientRepository = clientRepository;
@@ -183,23 +191,45 @@ public class OrchestrateurIa {
     /**
      * Associe au client le quartier le plus probable de la base. Si plusieurs quartiers
      * correspondent, prend le premier et retourne une note demandant de preciser le lieu de
-     * livraison. Leve {@link QuartierInconnuException} si le quartier fourni est introuvable.
+     * livraison. Si le quartier est inconnu, tente de le geocoder puis le persiste (il ne sera
+     * plus jamais redemande). Leve {@link QuartierInconnuException} si le geocodage echoue.
      */
     private String associerQuartier(final Client client, final CommandeIa commande,
                                     final List<Quartier> quartiers) {
         final Optional<RapprochementQuartiers.QuartierRapproche> rapproche =
                 rapprochementQuartiers.rapprocher(commande.quartier(), quartiers);
         if (rapproche.isEmpty()) {
-            if (commande.quartier() != null && !commande.quartier().isBlank()) {
-                throw new QuartierInconnuException(commande.quartier());
-            }
-            return null;
+            return associerQuartierInconnu(client, commande);
         }
         final RapprochementQuartiers.QuartierRapproche resultat = rapproche.get();
-        client.setQuartier(resultat.quartier());
-        client.setAdresse(commande.adresse());
-        clientRepository.save(client);
+        associer(client, resultat.quartier(), commande.adresse());
         return resultat.ambigu() ? MESSAGE_LIEU_A_PRECISER : null;
+    }
+
+    /**
+     * Quartier absent de la base : geocodage Google puis enregistrement du nouveau quartier
+     * (avec ses coordonnees) afin qu'il ne soit plus jamais redemande. Retourne {@code null}
+     * (pas d'ambiguite) ; leve {@link QuartierInconnuException} si le geocodage echoue.
+     */
+    private String associerQuartierInconnu(final Client client, final CommandeIa commande) {
+        if (commande.quartier() == null || commande.quartier().isBlank()) {
+            return null;
+        }
+        final Optional<Coordonnees> coordonnees =
+                geocodingPort.geocoder(commande.quartier() + CONTEXTE_GEOCODAGE);
+        if (coordonnees.isEmpty()) {
+            throw new QuartierInconnuException(commande.quartier());
+        }
+        final Quartier nouveau = new Quartier(commande.quartier(), null,
+                coordonnees.get().latitude(), coordonnees.get().longitude(), 0, true);
+        associer(client, quartierRepository.save(nouveau), commande.adresse());
+        return null;
+    }
+
+    private void associer(final Client client, final Quartier quartier, final String adresse) {
+        client.setQuartier(quartier);
+        client.setAdresse(adresse);
+        clientRepository.save(client);
     }
 
     private LocalDate parseDate(final String valeur) {
