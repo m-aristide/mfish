@@ -208,6 +208,24 @@ class OrchestrateurIaTest {
     }
 
     @Test
+    @DisplayName("doit_repondre_poliment_a_un_remerciement_apres_confirmation")
+    void doit_repondre_poliment_a_un_remerciement_apres_confirmation() {
+        catalogue();
+        final EtatCommande confirmee = new EtatCommande(
+                List.of(new LigneEtatCommande("Attieke", 3)), "Cocody", null, DATE_LIVRAISON,
+                null, StatutEtatCommande.CONFIRMEE);
+        when(llmPort.generer(anyString(), anyList())).thenReturn(
+                "{\"reponse\":\"ok\",\"intention\":\"autre\",\"commande\":null,\"escalade\":false}");
+
+        final ResultatIa resultat =
+                orchestrateur().traiter(client(), confirmee, List.of(), "Merci");
+
+        assertThat(resultat.escalade()).isFalse();
+        assertThat(resultat.commandeCreee()).isFalse();
+        assertThat(resultat.reponseAuClient()).contains("Merci").doesNotContain("enregistree");
+    }
+
+    @Test
     @DisplayName("doit_escalader_une_modification_d_une_commande_deja_enregistree")
     void doit_escalader_une_modification_d_une_commande_deja_enregistree() {
         catalogue();

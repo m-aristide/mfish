@@ -110,7 +110,28 @@ class MemoireCommandeTest {
                 reponse("commande", List.of(new ProduitIa("Attieke", 0)), null, null), "attieke");
 
         assertThat(etat.lignes()).isEmpty();
-        assertThat(etat.champsManquants()).contains(EtatCommande.CHAMP_PRODUIT);
+        assertThat(etat.champsManquants()).contains(EtatCommande.CHAMP_QUANTITE);
+    }
+
+    @Test
+    @DisplayName("ne_doit_pas_inventer_une_quantite_sans_indication_du_client")
+    void ne_doit_pas_inventer_une_quantite_sans_indication_du_client() {
+        final EtatCommande etat = memoire.fusionner(EtatCommande.vide(),
+                reponse("commande", List.of(new ProduitIa("Attieke", 1)), null, null),
+                "je veux de l'attieke");
+
+        assertThat(etat.lignes()).isEmpty();
+        assertThat(etat.champsManquants()).contains(EtatCommande.CHAMP_QUANTITE);
+    }
+
+    @Test
+    @DisplayName("doit_reconnaitre_les_remerciements_et_salutations")
+    void doit_reconnaitre_les_remerciements_et_salutations() {
+        assertThat(memoire.estRemerciementOuSalutation("Merci")).isTrue();
+        assertThat(memoire.estRemerciementOuSalutation("Bonjour")).isTrue();
+        assertThat(memoire.estRemerciementOuSalutation("🙏")).isTrue();
+        assertThat(memoire.estRemerciementOuSalutation("Oui je confirme")).isFalse();
+        assertThat(memoire.estRemerciementOuSalutation(null)).isFalse();
     }
 
     @Test

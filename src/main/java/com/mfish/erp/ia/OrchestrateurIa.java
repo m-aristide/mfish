@@ -132,7 +132,11 @@ public class OrchestrateurIa {
             return new ResultatIa(reponseFinale, false, false, fusionne);
         }
         if (fusionne.estConfirmee()) {
-            return new ResultatIa(memoire.recapitulatif(fusionne), false, false, fusionne);
+            if (memoire.estRemerciementOuSalutation(message)) {
+                return new ResultatIa(memoire.reponsePolie(), false, false, fusionne);
+            }
+            return new ResultatIa(texteOu(reponse.reponse(), memoire.recapitulatif(fusionne)),
+                    false, false, fusionne);
         }
         if (!commandeDemandee(intention, message)) {
             return new ResultatIa(memoire.recapitulatifAConfirmer(fusionne), false, false, fusionne);
