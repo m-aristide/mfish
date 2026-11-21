@@ -6,6 +6,7 @@ import com.mfish.erp.conversation.LigneEtatCommande;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.OptionalInt;
 import org.springframework.stereotype.Component;
@@ -34,6 +35,21 @@ public class MemoireCommande {
     private static final List<String> MARQUEURS_CONFIRMATION = List.of(
             "oui", "ok", "d accord", "confirme", "c est bon", "valide", "exact", "parfait",
             "ca marche", "entendu");
+
+    /** Marqueurs de politesse / salutation : reponse breve, sans recapitulatif. */
+    private static final List<String> MARQUEURS_SOCIAUX = List.of(
+            "merci", "bonjour", "bonsoir", "salut", "au revoir", "a bientot", "a demain",
+            "bonne journee", "bonne soiree", "avec plaisir");
+
+    /** Emojis de politesse, verifies sur le message brut (non normalise). */
+    private static final List<String> EMOJIS_POLITESSE = List.of("👍", "🙏", "❤️", "😊", "🙂", "🥰");
+
+    /** Quantites en toutes lettres (sans chiffre) : a ne pas rejeter comme invention. */
+    private static final List<String> MOTS_QUANTITE = List.of(
+            "kilo", "kilos", "kg", "kilogramme", "kilogrammes", "gramme", "grammes",
+            "un", "une", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf",
+            "dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "vingt",
+            "trente", "quarante", "cinquante", "cent");
 
     /** Au-dela de cette longueur, le message n'est plus une simple confirmation. */
     private static final int LONGUEUR_MAX_CONFIRMATION = 40;
@@ -65,10 +81,11 @@ public class MemoireCommande {
                 : etatCourant;
 
         final boolean ajout = contientMarqueur(message, MARQUEURS_AJOUT);
+        final boolean quantiteExplicite = messageIndiqueQuantite(message);
         List<LigneEtatCommande> lignes = new ArrayList<>(depart.lignes());
         if (extrait.produits() != null) {
             for (final ProduitIa produit : extrait.produits()) {
-                lignes = fusionnerLigne(lignes, produit, ajout);
+                lignes = fusionnerLigne(lignes, produit, ajout, quantiteExplicite);
             }
         }
         return new EtatCommande(lignes,
@@ -125,6 +142,33 @@ public class MemoireCommande {
         return MARQUEURS_CONFIRMATION.stream().anyMatch(normalise::contains);
     }
 
+    /** Vrai si le message est une salutation, un remerciement ou une politesse. */
+    public boolean estRemerciementOuSalutation(final String message) {
+        if (message == null || message.isBlank() || message.length() > LONGUEUR_MAX_CONFIRMATION) {
+            return false;
+        }
+        if (EMOJIS_POLITESSE.stream().anyMatch(message::contains)) {
+            return true;
+        }
+        final String normalise = normaliser(message);
+        return MARQUEURS_SOCIAUX.stream().anyMatch(normalise::contains);
+    }
+
+    /** Reponse de politesse apres une commande confirmee : breve, sans recapitulatif. */
+    public String reponsePolie() {
+        return "Avec plaisir 🐟 Merci pour votre confiance ! L'equipe vous confirme tres vite.";
+    }
+
+    /** Vrai si le message indique explicitement une quantite (chiffre ou mot de quantite). */
+    private static boolean messageIndiqueQuantite(final String message) {
+        final String normalise = normaliser(message);
+        if (normalise.matches(".*\\d.*")) {
+            return true;
+        }
+        return Arrays.stream(normalise.split(" "))
+                .anyMatch(MOTS_QUANTITE::contains);
+    }
+
     private static boolean nouvelleCommande(final EtatCommande etat, final Intention intention,
                                             final LocalDate dateExtraite) {
         return etat.estConfirmee()
@@ -135,14 +179,15 @@ public class MemoireCommande {
 
     private static List<LigneEtatCommande> fusionnerLigne(final List<LigneEtatCommande> lignes,
                                                           final ProduitIa produit,
-                                                          final boolean ajout) {
+                                                          final boolean ajout,
+                                                          final boolean quantiteExplicite) {
         if (produit == null) {
             return lignes;
         }
         final int quantite = Math.max(produit.quantite(), 0);
         final OptionalInt position = position(lignes, produit.nom());
         if (position.isEmpty()) {
-            if (normaliser(produit.nom()).isBlank() || quantite <= 0) {
+            if (normaliser(produit.nom()).isBlank() || quantite <= 0 || !quantiteExplicite) {
                 return lignes;
             }
             final List<LigneEtatCommande> completees = new ArrayList<>(lignes);

@@ -30,7 +30,7 @@ class EtatCommandeJsonTest {
         final String json = EtatCommandeJson.versJson(EtatCommande.vide());
 
         assertThat(json).contains("\"champsManquants\"")
-                .contains("le produit")
+                .contains("la quantite")
                 .contains("\"statut\":\"EN_COURS\"");
     }
 

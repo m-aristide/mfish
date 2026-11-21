@@ -103,7 +103,7 @@ class PromptBuilderTest {
                 List.of(LocalDate.of(2026, 11, 1)), null);
 
         assertThat(prompt).contains("Informations deja collectees : aucune")
-                .contains("Informations encore manquantes : le produit, le quartier, "
+                .contains("Informations encore manquantes : la quantite, le quartier, "
                         + "la date de livraison");
     }
 }

@@ -14,7 +14,7 @@ class EtatCommandeTest {
     @DisplayName("doit_lister_les_champs_manquants_dans_l_ordre_de_collecte")
     void doit_lister_les_champs_manquants_dans_l_ordre_de_collecte() {
         assertThat(EtatCommande.vide().champsManquants()).containsExactly(
-                EtatCommande.CHAMP_PRODUIT, EtatCommande.CHAMP_QUARTIER, EtatCommande.CHAMP_DATE);
+                EtatCommande.CHAMP_QUANTITE, EtatCommande.CHAMP_QUARTIER, EtatCommande.CHAMP_DATE);
         assertThat(EtatCommande.vide().complet()).isFalse();
     }
 

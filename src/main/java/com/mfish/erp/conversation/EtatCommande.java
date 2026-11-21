@@ -20,7 +20,6 @@ public record EtatCommande(
         StatutEtatCommande statut) {
 
     /** Libelles utilises dans les questions au client et dans le prompt. */
-    public static final String CHAMP_PRODUIT = "le produit";
     public static final String CHAMP_QUANTITE = "la quantite";
     public static final String CHAMP_QUARTIER = "le quartier";
     public static final String CHAMP_DATE = "la date de livraison";
@@ -41,10 +40,7 @@ public record EtatCommande(
      */
     public List<String> champsManquants() {
         final List<String> manquants = new ArrayList<>();
-        if (lignes.isEmpty()) {
-            manquants.add(CHAMP_PRODUIT);
-        }
-        if (lignes.stream().anyMatch(ligne -> ligne.quantite() <= 0)) {
+        if (lignes.isEmpty() || lignes.stream().allMatch(ligne -> ligne.quantite() <= 0)) {
             manquants.add(CHAMP_QUANTITE);
         }
         if (estVide(quartier)) {
