@@ -14,6 +14,7 @@ import com.mfish.erp.client.ClientRepository;
 import com.mfish.erp.commande.CommandeService;
 import com.mfish.erp.commande.LigneCommande;
 import com.mfish.erp.commun.AppelExterneException;
+import com.mfish.erp.connaissance.ConnaissanceService;
 import com.mfish.erp.conversation.EtatCommande;
 import com.mfish.erp.conversation.LigneEtatCommande;
 import com.mfish.erp.conversation.StatutEtatCommande;
@@ -46,6 +47,9 @@ class OrchestrateurIaTest {
     private LlmPort llmPort;
 
     @Mock
+    private ConnaissanceService connaissanceService;
+
+    @Mock
     private ProduitRepository produitRepository;
 
     @Mock
@@ -64,10 +68,11 @@ class OrchestrateurIaTest {
             ZoneId.of("UTC"));
 
     private OrchestrateurIa orchestrateur() {
-        return new OrchestrateurIa(llmPort, new PromptBuilder(), new ParseurReponseIa(),
-                new MemoireCommande(), new RapprochementProduits(), new RapprochementQuartiers(),
-                geocodingPort, produitRepository, quartierRepository, clientRepository,
-                commandeService, clock);
+        when(connaissanceService.contenuCourant()).thenReturn("BASE");
+        return new OrchestrateurIa(llmPort, new PromptBuilder(connaissanceService),
+                new ParseurReponseIa(), new MemoireCommande(), new RapprochementProduits(),
+                new RapprochementQuartiers(), geocodingPort, produitRepository, quartierRepository,
+                clientRepository, commandeService, clock);
     }
 
     private Client client() {

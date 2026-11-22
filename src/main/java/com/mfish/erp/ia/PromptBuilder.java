@@ -1,5 +1,6 @@
 package com.mfish.erp.ia;
 
+import com.mfish.erp.connaissance.ConnaissanceService;
 import com.mfish.erp.conversation.EtatCommande;
 import com.mfish.erp.conversation.EtatCommandeJson;
 import com.mfish.erp.produit.Produit;
@@ -9,13 +10,20 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
- * Construit le prompt systeme a partir du catalogue, des quartiers desservis, des regles de ton
- * et de l'etat de la commande en cours. Limite aussi le contexte aux N derniers messages.
+ * Construit le prompt systeme a partir de la base de connaissance (source unique des regles
+ * metier), du catalogue, des quartiers desservis et de l'etat de la commande en cours. Limite
+ * aussi le contexte aux N derniers messages.
  */
 @Component
 public class PromptBuilder {
 
     public static final int MAX_MESSAGES_CONTEXTE = 10;
+
+    private final ConnaissanceService connaissanceService;
+
+    public PromptBuilder(final ConnaissanceService connaissanceService) {
+        this.connaissanceService = connaissanceService;
+    }
 
     public String construire(final List<Produit> produits,
                              final List<Quartier> quartiers,
@@ -29,9 +37,7 @@ public class PromptBuilder {
                              final EtatCommande etat) {
         final EtatCommande etatConnu = etat == null ? EtatCommande.vide() : etat;
         final StringBuilder prompt = new StringBuilder();
-        prompt.append("Tu es l'assistant commercial WhatsApp de MFISH, un petit commercant de Yaounde ")
-                .append("(Cameroun) qui vend du poisson silure frais. Reponds en francais, de facon ")
-                .append("chaleureuse, courte et professionnelle.\n\n");
+        prompt.append(connaissanceService.contenuCourant()).append("\n\n");
 
         prompt.append("Catalogue (nom et prix en FCFA) :\n");
         for (final Produit produit : produits) {
@@ -42,8 +48,6 @@ public class PromptBuilder {
                     .append(". Ne demande JAMAIS quel produit le client veut : considere automatiquement ")
                     .append("qu'il s'agit de ").append(produits.get(0).getNom()).append(".\n");
         }
-
-        prompt.append("\nFrais de livraison : 1 000 FCFA (tarif fixe), livraison uniquement a Yaounde.\n");
 
         prompt.append("\nQuartiers connus (a titre indicatif) :\n");
         for (final Quartier quartier : quartiers) {
