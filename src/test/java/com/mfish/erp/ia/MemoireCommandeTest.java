@@ -5,7 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.mfish.erp.conversation.EtatCommande;
 import com.mfish.erp.conversation.LigneEtatCommande;
 import com.mfish.erp.conversation.StatutEtatCommande;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +17,10 @@ class MemoireCommandeTest {
 
     private static final LocalDate DATE = LocalDate.of(2026, 11, 19);
 
-    private final MemoireCommande memoire = new MemoireCommande();
+    private final Clock clock = Clock.fixed(Instant.parse("2026-11-23T10:00:00Z"),
+            ZoneId.of("Africa/Douala"));
+
+    private final MemoireCommande memoire = new MemoireCommande(clock);
 
     private static ReponseIa reponse(final String intention, final List<ProduitIa> produits,
                                      final String quartier, final String date) {
@@ -148,7 +154,7 @@ class MemoireCommandeTest {
     void doit_demarrer_une_nouvelle_commande_sur_une_autre_date_apres_confirmation() {
         final EtatCommande confirmee = new EtatCommande(
                 List.of(new LigneEtatCommande("Attieke", 3)), "Cocody", null, DATE, null,
-                StatutEtatCommande.CONFIRMEE);
+                StatutEtatCommande.ENREGISTREE);
 
         final EtatCommande etat = memoire.fusionner(confirmee,
                 reponse("commande", List.of(new ProduitIa("Riz", 2)), null, "2026-11-25"),
@@ -205,12 +211,28 @@ class MemoireCommandeTest {
     void doit_formuler_les_recapitulatifs() {
         final EtatCommande etat = new EtatCommande(
                 List.of(new LigneEtatCommande("Attieke", 3)), "Cocody", null, DATE, null,
-                StatutEtatCommande.CONFIRMEE);
+                StatutEtatCommande.ENREGISTREE);
 
         assertThat(memoire.recapitulatif(etat)).startsWith("Votre commande est enregistree");
         assertThat(memoire.recapitulatif(etat)).contains("3 kg de Attieke");
         assertThat(memoire.recapitulatifAConfirmer(etat))
                 .startsWith("Recapitulatif de votre commande")
                 .endsWith("Confirmez-vous cette commande ?");
+    }
+
+    @Test
+    @DisplayName("doit_resoudre_les_dates_relatives_a_partir_du_fuseau_metier")
+    void doit_resoudre_les_dates_relatives_a_partir_du_fuseau_metier() {
+        final LocalDate aujourdhui = LocalDate.of(2026, 11, 23);
+
+        assertThat(memoire.fusionner(EtatCommande.vide(),
+                reponse("commande", List.of(), null, null), "Je veux etre livre demain")
+                .dateLivraison()).isEqualTo(aujourdhui.plusDays(1));
+        assertThat(memoire.fusionner(EtatCommande.vide(),
+                reponse("commande", List.of(), null, null), "apres-demain")
+                .dateLivraison()).isEqualTo(aujourdhui.plusDays(2));
+        assertThat(memoire.fusionner(EtatCommande.vide(),
+                reponse("commande", List.of(), null, null), "livraison aujourd'hui")
+                .dateLivraison()).isEqualTo(aujourdhui);
     }
 }

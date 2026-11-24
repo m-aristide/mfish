@@ -90,6 +90,7 @@ class ScenarioCommandeTourneeE2ETest {
     private static final String CONVERSATION_ID = "conversation-scenario-e2e";
     private static final String EVENEMENT_1 = "evt-scenario-e2e-1";
     private static final String EVENEMENT_2 = "evt-scenario-e2e-2";
+    private static final String EVENEMENT_3 = "evt-scenario-e2e-3";
     private static final String TELEPHONE = "+237690112233";
     private static final String NOM_CLIENT = "Awa Ndongo";
     private static final String NOM_QUARTIER = "Obobogo";
@@ -104,6 +105,7 @@ class ScenarioCommandeTourneeE2ETest {
             "Bonjour, est-ce que vous avez du poisson silure frais ?";
     private static final String MESSAGE_COMMANDE = "Je prends 3 kilos de poisson silure frais, "
             + "livraison le 19/11/2026 a 12h a Obobogo, rue 1.234 maison 12.";
+    private static final String MESSAGE_CONFIRMATION = "oui";
 
     private static final String REPONSE_QUESTION = "{\"reponse\":\"Oui, nous avons du poisson "
             + "silure frais a 2500 FCFA le kilo.\",\"intention\":\"question\","
@@ -114,6 +116,9 @@ class ScenarioCommandeTourneeE2ETest {
             + "\"commande\":{\"produits\":[{\"nom\":\"poisson silure frais\",\"quantite\":3}],"
             + "\"quartier\":\"Obobogo\",\"adresse\":\"Rue 1.234, maison 12\","
             + "\"dateSouhaitee\":\"2026-11-19\",\"complet\":true},\"escalade\":false}";
+
+    private static final String REPONSE_CONFIRMATION =
+            "{\"reponse\":\"\",\"intention\":\"autre\",\"commande\":null,\"escalade\":false}";
 
     @Autowired
     private MockMvc mockMvc;
@@ -168,7 +173,8 @@ class ScenarioCommandeTourneeE2ETest {
     void une_conversation_cree_le_client_la_commande_puis_la_tournee() throws Exception {
         when(llmPort.generer(anyString(), anyList()))
                 .thenReturn(REPONSE_QUESTION)
-                .thenReturn(REPONSE_COMMANDE);
+                .thenReturn(REPONSE_COMMANDE)
+                .thenReturn(REPONSE_CONFIRMATION);
         // E1 : question commerciale, aucune commande creee.
         envoyerWebhookChatwoot(EVENEMENT_1, QUESTION);
         await().atMost(Duration.ofSeconds(20))
@@ -177,8 +183,17 @@ class ScenarioCommandeTourneeE2ETest {
                         .hasSize(1));
         assertThat(commandeRepository.findByDateLivraisonSouhaitee(DATE_LIVRAISON)).isEmpty();
 
-        // E2 : commande explicite (produit, quantite, quartier, date).
+        // E2 : commande explicite (produit, quantite, quartier, date) -> recapitulatif, pas encore
+        // sauvegardee : l'enregistrement attend la confirmation du client.
         envoyerWebhookChatwoot(EVENEMENT_2, MESSAGE_COMMANDE);
+        await().atMost(Duration.ofSeconds(20))
+                .pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> assertThat(messageStore.messages(CONVERSATION_ID))
+                        .hasSize(2));
+        assertThat(commandeRepository.findByDateLivraisonSouhaitee(DATE_LIVRAISON)).isEmpty();
+
+        // E2bis : confirmation du client -> enregistrement de la commande.
+        envoyerWebhookChatwoot(EVENEMENT_3, MESSAGE_CONFIRMATION);
         await().atMost(Duration.ofSeconds(20))
                 .pollInterval(Duration.ofMillis(200))
                 .untilAsserted(() -> assertThat(commandeRepository
@@ -187,7 +202,7 @@ class ScenarioCommandeTourneeE2ETest {
         // E3 : la reponse de l'IA a bien ete envoyee au client (mode LOCAL du simulateur).
         await().atMost(Duration.ofSeconds(20))
                 .untilAsserted(() -> assertThat(messageStore.messages(CONVERSATION_ID))
-                        .hasSize(2));
+                        .hasSize(3));
         assertThat(conversationRepository.findByChatwootConversationId(CONVERSATION_ID))
                 .get()
                 .extracting(Conversation::getMode)
@@ -239,17 +254,31 @@ class ScenarioCommandeTourneeE2ETest {
     @Test
     @DisplayName("un webhook rejoue ne cree pas de doublon de commande")
     void un_webhook_rejoue_ne_cree_pas_de_doublon() throws Exception {
-        when(llmPort.generer(anyString(), anyList())).thenReturn(REPONSE_COMMANDE);
+        when(llmPort.generer(anyString(), anyList()))
+                .thenReturn(REPONSE_COMMANDE)
+                .thenReturn(REPONSE_CONFIRMATION);
         envoyerWebhookChatwoot(EVENEMENT_2, MESSAGE_COMMANDE);
+        await().atMost(Duration.ofSeconds(20))
+                .pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> assertThat(messageStore.messages(CONVERSATION_ID))
+                        .hasSize(1));
+
+        // Confirmation du client -> enregistrement de la commande.
+        envoyerWebhookChatwoot(EVENEMENT_3, MESSAGE_CONFIRMATION);
         await().atMost(Duration.ofSeconds(20))
                 .pollInterval(Duration.ofMillis(200))
                 .untilAsserted(() -> assertThat(commandeRepository
                         .findByClientId(identifiantDuClient())).hasSize(1));
+        await().atMost(Duration.ofSeconds(20))
+                .pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> assertThat(messageStore.messages(CONVERSATION_ID))
+                        .hasSize(2));
 
+        // Rejeu du meme evenement : idempotence, aucun doublon de commande ni de message.
         envoyerWebhookChatwoot(EVENEMENT_2, MESSAGE_COMMANDE);
 
         assertThat(commandeRepository.findByClientId(identifiantDuClient())).hasSize(1);
-        assertThat(messageStore.messages(CONVERSATION_ID)).hasSize(1);
+        assertThat(messageStore.messages(CONVERSATION_ID)).hasSize(2);
         assertThat(evenementTraiteRepository.findById(EVENEMENT_2)).isPresent();
     }
 
@@ -303,7 +332,7 @@ class ScenarioCommandeTourneeE2ETest {
         });
         conversationRepository.findByChatwootConversationId(CONVERSATION_ID)
                 .ifPresent(conversationRepository::delete);
-        evenementTraiteRepository.deleteAllById(List.of(EVENEMENT_1, EVENEMENT_2));
+        evenementTraiteRepository.deleteAllById(List.of(EVENEMENT_1, EVENEMENT_2, EVENEMENT_3));
         messageStore.effacer(CONVERSATION_ID);
     }
 

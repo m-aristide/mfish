@@ -45,7 +45,7 @@ class EtatCommandeTest {
     void doit_resumer_les_informations_deja_collectees() {
         final EtatCommande etat = new EtatCommande(
                 List.of(new LigneEtatCommande("Attieke", 3)), "Cocody", "Rue 12",
-                LocalDate.of(2026, 11, 19), "12h", StatutEtatCommande.CONFIRMEE);
+                LocalDate.of(2026, 11, 19), "12h", StatutEtatCommande.ENREGISTREE);
 
         assertThat(etat.resume())
                 .contains("3 kg de Attieke")
@@ -53,7 +53,7 @@ class EtatCommandeTest {
                 .contains("adresse Rue 12")
                 .contains("livraison le 19/11/2026")
                 .contains("vers 12h");
-        assertThat(etat.estConfirmee()).isTrue();
+        assertThat(etat.estEnregistree()).isTrue();
     }
 
     @Test

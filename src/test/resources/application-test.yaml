@@ -1,7 +1,7 @@
 # Profil de test : base H2 (mode PostgreSQL) quand Docker/PostgreSQL est indisponible.
 # Les migrations H2 sont dans db/migration-h2 (dialecte H2). Aucun secret reel.
 app:
-  timezone: Africa/Abidjan
+  timezone: Africa/Douala
   monnaie:
     devise: FCFA
   jwt:

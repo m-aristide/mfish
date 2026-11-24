@@ -21,6 +21,8 @@ import com.mfish.erp.whatsapp.webhook.WhatsAppMessage;
 import com.mfish.erp.whatsapp.webhook.WhatsAppMessageRepository;
 import java.time.Clock;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -48,6 +50,9 @@ public class WhatsAppConversationService {
     private final WhatsAppMetrics metrics;
     private final Clock clock;
 
+    /** Verrous par telephone : traitement sequentiel des messages d'un meme client. */
+    private final ConcurrentMap<String, Object> verrousTelephone = new ConcurrentHashMap<>();
+
     public WhatsAppConversationService(final ClientRepository clientRepository,
                                        final ConversationRepository conversationRepository,
                                        final WhatsAppPort whatsAppPort,
@@ -72,6 +77,13 @@ public class WhatsAppConversationService {
         if (telephone == null) {
             return;
         }
+        final Object verrou = verrousTelephone.computeIfAbsent(telephone, k -> new Object());
+        synchronized (verrou) {
+            traiterSousVerrou(message, telephone);
+        }
+    }
+
+    private void traiterSousVerrou(final MessageEntrant message, final String telephone) {
         final String texte = message.texte() == null ? "" : message.texte();
         if (DetecteurOptOut.estOpposition(texte)) {
             desinscrireEtConfirmer(telephone, message.nomContact());

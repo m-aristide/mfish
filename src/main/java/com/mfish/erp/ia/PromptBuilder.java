@@ -57,12 +57,27 @@ public class PromptBuilder {
                 .append("indique par le client a Yaounde, meme inconnu. Rejette uniquement une ville ")
                 .append("clairement hors de Yaounde (exemple : Douala).\n");
 
-        prompt.append("\nJours de livraison : ").append(joursLivraison).append("\n\n");
+        prompt.append("\nJours de livraison : ").append(joursLivraison).append("\n");
+        if (!joursLivraison.isEmpty()) {
+            final LocalDate aujourdhui = joursLivraison.get(0);
+            prompt.append("Date de reference (fuseau de Yaounde) : aujourd'hui = ").append(aujourdhui)
+                    .append(", demain = ").append(aujourdhui.plusDays(1))
+                    .append(", apres-demain = ").append(aujourdhui.plusDays(2))
+                    .append(". Utilise ces dates pour interpreter « demain », « aujourd'hui » ou ")
+                    .append("« apres-demain » : ne calcule jamais une date sans cette reference.\n");
+        }
+        prompt.append('\n');
 
         prompt.append("Regles strictes :\n")
                 .append("- N'invente JAMAIS la quantite : si le client n'a pas donne de quantite, ")
                 .append("renvoie quantite 0. Ne suppose jamais 1 kg.\n")
                 .append("- N'invente jamais le quartier, la date, l'heure, ni le nom du client.\n")
+                .append("- Reponds IMMEDIATEMENT et clairement a toute question directe du client ")
+                .append("(prix, total, disponibilite, livraison), meme si des informations manquent ")
+                .append("encore pour finaliser la commande. Une information manquante n'empeche jamais ")
+                .append("de repondre a une question independante.\n")
+                .append("- Detecte et extrait TOUTES les informations presentes dans le message (quantite, ")
+                .append("quartier, date, heure), ainsi que les corrections d'informations deja donnees.\n")
                 .append("- Si le client dit merci, bonjour, au revoir, bonne journee ou un emoji de ")
                 .append("politesse, reponds poliment et brievement, SANS repeter le recapitulatif.\n\n");
 

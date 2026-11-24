@@ -60,6 +60,16 @@ public record EtatCommande(
         return statut == StatutEtatCommande.CONFIRMEE;
     }
 
+    /** Vrai si la commande a ete enregistree dans le backend (elle ne doit plus etre modifiee). */
+    public boolean estEnregistree() {
+        return statut == StatutEtatCommande.ENREGISTREE;
+    }
+
+    /** Vrai si le recapitulatif a ete presente et qu'on attend la confirmation du client. */
+    public boolean estAConfirmer() {
+        return statut == StatutEtatCommande.A_CONFIRMER;
+    }
+
     public EtatCommande avecStatut(final StatutEtatCommande nouveauStatut) {
         return new EtatCommande(lignes, quartier, adresse, dateLivraison, heureLivraison,
                 nouveauStatut);

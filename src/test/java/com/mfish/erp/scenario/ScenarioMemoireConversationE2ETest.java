@@ -77,6 +77,7 @@ class ScenarioMemoireConversationE2ETest {
     private static final String MESSAGE_QUARTIER = NOM_QUARTIER;
     private static final String MESSAGE_DATE = "le 20/11/2026";
     private static final String MESSAGE_CORRECTION = "finalement 5 kilos";
+    private static final String MESSAGE_CONFIRMATION = "oui";
 
     private static final String JSON_TROIS_KG = commande("3", "null", "null", "commande");
     private static final String JSON_DEUX_KG = commande("2", "null", "null", "commande");
@@ -126,7 +127,7 @@ class ScenarioMemoireConversationE2ETest {
 
     private static String commande(final String quantite, final String quartier,
                                    final String date, final String intention) {
-        return "{\"reponse\":\"Bien recu.\",\"intention\":\"" + intention + "\","
+        return "{\"reponse\":\"\",\"intention\":\"" + intention + "\","
                 + "\"commande\":{\"produits\":[{\"nom\":\"" + NOM_PRODUIT + "\",\"quantite\":"
                 + quantite + "}],\"quartier\":" + quartier + ",\"adresse\":null,"
                 + "\"dateSouhaitee\":" + date + ",\"complet\":false},\"escalade\":false}";
@@ -171,6 +172,8 @@ class ScenarioMemoireConversationE2ETest {
         assertThat(commandeRepository.findByClientId(identifiantDuClient(TELEPHONE_A))).isEmpty();
 
         envoyer(CONVERSATION_A, TELEPHONE_A, NOM_CLIENT_A, MESSAGE_DATE);
+        attendreReponse(CONVERSATION_A, 3);
+        envoyer(CONVERSATION_A, TELEPHONE_A, NOM_CLIENT_A, MESSAGE_CONFIRMATION);
         final ResumeCommande resume = attendreCommande(TELEPHONE_A);
 
         assertThat(resume.quantite()).isEqualTo(3);
@@ -178,7 +181,7 @@ class ScenarioMemoireConversationE2ETest {
         assertThat(resume.dateLivraison()).isEqualTo(DATE_LIVRAISON);
         final Conversation apresCommande = conversationRepository
                 .findByChatwootConversationId(CONVERSATION_A).orElseThrow();
-        assertThat(apresCommande.getEtatCommandeJson()).contains("\"statut\":\"CONFIRMEE\"");
+        assertThat(apresCommande.getEtatCommandeJson()).contains("\"statut\":\"ENREGISTREE\"");
     }
 
     @Test
@@ -196,6 +199,8 @@ class ScenarioMemoireConversationE2ETest {
                 .doesNotContain("3 kg");
 
         envoyer(CONVERSATION_A, TELEPHONE_A, NOM_CLIENT_A, MESSAGE_DATE);
+        attendreReponse(CONVERSATION_A, 4);
+        envoyer(CONVERSATION_A, TELEPHONE_A, NOM_CLIENT_A, MESSAGE_CONFIRMATION);
         final ResumeCommande resume = attendreCommande(TELEPHONE_A);
 
         assertThat(resume.quantite()).isEqualTo(5);
@@ -211,6 +216,8 @@ class ScenarioMemoireConversationE2ETest {
         envoyer(CONVERSATION_B, TELEPHONE_B, NOM_CLIENT_B, MESSAGE_QUARTIER);
         attendreReponse(CONVERSATION_B, 2);
         envoyer(CONVERSATION_B, TELEPHONE_B, NOM_CLIENT_B, MESSAGE_DATE);
+        attendreReponse(CONVERSATION_B, 3);
+        envoyer(CONVERSATION_B, TELEPHONE_B, NOM_CLIENT_B, MESSAGE_CONFIRMATION);
         final ResumeCommande resumeB = attendreCommande(TELEPHONE_B);
 
         assertThat(resumeB.quantite()).isEqualTo(2);
