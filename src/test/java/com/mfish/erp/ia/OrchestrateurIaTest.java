@@ -70,7 +70,7 @@ class OrchestrateurIaTest {
     private OrchestrateurIa orchestrateur() {
         when(connaissanceService.contenuCourant()).thenReturn("BASE");
         return new OrchestrateurIa(llmPort, new PromptBuilder(connaissanceService),
-                new ParseurReponseIa(), new MemoireCommande(), new RapprochementProduits(),
+                new ParseurReponseIa(), new MemoireCommande(clock), new RapprochementProduits(),
                 new RapprochementQuartiers(), geocodingPort, produitRepository, quartierRepository,
                 clientRepository, commandeService, clock);
     }
@@ -86,33 +86,62 @@ class OrchestrateurIaTest {
                 .thenReturn(List.of(new Quartier("Cocody", "Nord", 5.35, -3.97, 1, true)));
     }
 
+    /** Reponse LLM avec un champ {@code reponse} vide : la reponse deterministe est utilisee. */
     private static String commandeJson(final String produit, final String quantite,
                                        final String quartier, final String date,
                                        final String intention) {
-        return "{\"reponse\":\"ok\",\"intention\":\"" + intention + "\","
+        return commandeJson("", produit, quantite, quartier, date, intention);
+    }
+
+    private static String commandeJson(final String reponse, final String produit,
+                                       final String quantite, final String quartier,
+                                       final String date, final String intention) {
+        return "{\"reponse\":\"" + reponse + "\",\"intention\":\"" + intention + "\","
                 + "\"commande\":{\"produits\":[{\"nom\":" + produit + ",\"quantite\":"
                 + quantite + "}],\"quartier\":" + quartier + ",\"adresse\":null,"
                 + "\"dateSouhaitee\":" + date + ",\"complet\":true},\"escalade\":false}";
     }
 
-    @Test
-    @DisplayName("doit_creer_une_commande_avec_le_prix_en_base_quand_complet")
-    void doit_creer_une_commande_avec_le_prix_en_base_quand_complet() {
-        catalogue();
-        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
-                "\"Attieke\"", "2", "\"Cocody\"", "\"2026-11-19\"", "commande"));
+    private static String commandeNull() {
+        return "{\"reponse\":\"\",\"intention\":\"autre\",\"commande\":null,\"escalade\":false}";
+    }
 
-        final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke");
+    @Test
+    @DisplayName("doit_sauvegarder_sur_confirmation_avec_le_prix_lu_en_base")
+    void doit_sauvegarder_sur_confirmation_avec_le_prix_lu_en_base() {
+        catalogue();
+        final EtatCommande memoire = new EtatCommande(
+                List.of(new LigneEtatCommande("Attieke", 2)), "Cocody", null, DATE_LIVRAISON,
+                null, StatutEtatCommande.A_CONFIRMER);
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeNull());
+
+        final ResultatIa resultat = orchestrateur().traiter(client(), memoire, List.of(), "oui");
 
         assertThat(resultat.commandeCreee()).isTrue();
         assertThat(resultat.escalade()).isFalse();
-        assertThat(resultat.etat().estConfirmee()).isTrue();
+        assertThat(resultat.etat().estEnregistree()).isTrue();
 
         final ArgumentCaptor<List<LigneCommande>> captor = ArgumentCaptor.forClass(List.class);
         verify(commandeService).creer(any(), captor.capture(), any(), any(), any(), isNull());
         assertThat(captor.getValue()).hasSize(1);
         assertThat(captor.getValue().get(0).getPrixUnitaire()).isEqualTo(1000);
         assertThat(captor.getValue().get(0).getQuantite()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("doit_presenter_le_recapitulatif_quand_complet_sans_confirmation")
+    void doit_presenter_le_recapitulatif_quand_complet_sans_confirmation() {
+        catalogue();
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
+                "\"Attieke\"", "2", "\"Cocody\"", "\"2026-11-19\"", "commande"));
+
+        final ResultatIa resultat =
+                orchestrateur().traiter(client(), List.of(), "2 attieke a Cocody");
+
+        assertThat(resultat.commandeCreee()).isFalse();
+        assertThat(resultat.etat().estAConfirmer()).isTrue();
+        assertThat(resultat.reponseAuClient()).contains("Recapitulatif");
+        verify(commandeService, never()).creer(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -128,15 +157,11 @@ class OrchestrateurIaTest {
         final ResultatIa resultat =
                 orchestrateur().traiter(client(), memoire, List.of(), "le 19/11/2026");
 
-        assertThat(resultat.commandeCreee()).isTrue();
-        final ArgumentCaptor<List<LigneCommande>> captor = ArgumentCaptor.forClass(List.class);
-        final ArgumentCaptor<LocalDate> date = ArgumentCaptor.forClass(LocalDate.class);
-        verify(commandeService).creer(any(), captor.capture(), any(), any(), date.capture(),
-                isNull());
-        assertThat(captor.getValue()).hasSize(1);
-        assertThat(captor.getValue().get(0).getQuantite()).isEqualTo(3);
-        assertThat(date.getValue()).isEqualTo(DATE_LIVRAISON);
+        assertThat(resultat.commandeCreee()).isFalse();
         assertThat(resultat.etat().quartier()).isEqualTo("Cocody");
+        assertThat(resultat.etat().dateLivraison()).isEqualTo(DATE_LIVRAISON);
+        assertThat(resultat.etat().lignes().getFirst().quantite()).isEqualTo(3);
+        assertThat(resultat.etat().estAConfirmer()).isTrue();
     }
 
     @Test
@@ -160,6 +185,22 @@ class OrchestrateurIaTest {
     }
 
     @Test
+    @DisplayName("doit_surfaccer_la_reponse_naturelle_du_llm_a_une_question_de_prix")
+    void doit_surfaccer_la_reponse_naturelle_du_llm_a_une_question_de_prix() {
+        catalogue();
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
+                "4 kg font 10 000 FCFA (2 500 FCFA/kg), plus 1 000 FCFA de livraison. Quel est votre quartier ?",
+                "\"Attieke\"", "4", "null", "null", "commande"));
+
+        final ResultatIa resultat =
+                orchestrateur().traiter(client(), List.of(), "Je veux 4 kilo, ca fait combien ?");
+
+        assertThat(resultat.reponseAuClient())
+                .contains("10 000 FCFA")
+                .doesNotContain("Il me manque");
+    }
+
+    @Test
     @DisplayName("doit_remplacer_la_quantite_quand_le_client_corrige")
     void doit_remplacer_la_quantite_quand_le_client_corrige() {
         catalogue();
@@ -172,10 +213,9 @@ class OrchestrateurIaTest {
         final ResultatIa resultat =
                 orchestrateur().traiter(client(), memoire, List.of(), "non, mettez 5 kilos");
 
-        assertThat(resultat.commandeCreee()).isTrue();
-        final ArgumentCaptor<List<LigneCommande>> captor = ArgumentCaptor.forClass(List.class);
-        verify(commandeService).creer(any(), captor.capture(), any(), any(), any(), isNull());
-        assertThat(captor.getValue().get(0).getQuantite()).isEqualTo(5);
+        assertThat(resultat.etat().lignes().getFirst().quantite()).isEqualTo(5);
+        assertThat(resultat.commandeCreee()).isFalse();
+        assertThat(resultat.etat().estAConfirmer()).isTrue();
     }
 
     @Test
@@ -196,34 +236,16 @@ class OrchestrateurIaTest {
     }
 
     @Test
-    @DisplayName("doit_creer_la_commande_quand_le_client_confirme_le_recapitulatif")
-    void doit_creer_la_commande_quand_le_client_confirme_le_recapitulatif() {
+    @DisplayName("doit_repondre_poliment_a_un_remerciement_apres_enregistrement")
+    void doit_repondre_poliment_a_un_remerciement_apres_enregistrement() {
         catalogue();
-        final EtatCommande memoire = new EtatCommande(
+        final EtatCommande enregistree = new EtatCommande(
                 List.of(new LigneEtatCommande("Attieke", 3)), "Cocody", null, DATE_LIVRAISON,
-                null, StatutEtatCommande.EN_COURS);
-        when(llmPort.generer(anyString(), anyList()))
-                .thenReturn("{\"reponse\":\"Tres bien.\",\"intention\":\"autre\","
-                        + "\"commande\":null,\"escalade\":false}");
-
-        final ResultatIa resultat = orchestrateur().traiter(client(), memoire, List.of(), "oui");
-
-        assertThat(resultat.commandeCreee()).isTrue();
-        assertThat(resultat.etat().estConfirmee()).isTrue();
-    }
-
-    @Test
-    @DisplayName("doit_repondre_poliment_a_un_remerciement_apres_confirmation")
-    void doit_repondre_poliment_a_un_remerciement_apres_confirmation() {
-        catalogue();
-        final EtatCommande confirmee = new EtatCommande(
-                List.of(new LigneEtatCommande("Attieke", 3)), "Cocody", null, DATE_LIVRAISON,
-                null, StatutEtatCommande.CONFIRMEE);
-        when(llmPort.generer(anyString(), anyList())).thenReturn(
-                "{\"reponse\":\"ok\",\"intention\":\"autre\",\"commande\":null,\"escalade\":false}");
+                null, StatutEtatCommande.ENREGISTREE);
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeNull());
 
         final ResultatIa resultat =
-                orchestrateur().traiter(client(), confirmee, List.of(), "Merci");
+                orchestrateur().traiter(client(), enregistree, List.of(), "Merci");
 
         assertThat(resultat.escalade()).isFalse();
         assertThat(resultat.commandeCreee()).isFalse();
@@ -234,14 +256,14 @@ class OrchestrateurIaTest {
     @DisplayName("doit_escalader_une_modification_d_une_commande_deja_enregistree")
     void doit_escalader_une_modification_d_une_commande_deja_enregistree() {
         catalogue();
-        final EtatCommande memoire = new EtatCommande(
+        final EtatCommande enregistree = new EtatCommande(
                 List.of(new LigneEtatCommande("Attieke", 3)), "Cocody", null, DATE_LIVRAISON,
-                null, StatutEtatCommande.CONFIRMEE);
+                null, StatutEtatCommande.ENREGISTREE);
         when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
                 "\"Attieke\"", "5", "\"Cocody\"", "\"2026-11-19\"", "modification"));
 
         final ResultatIa resultat =
-                orchestrateur().traiter(client(), memoire, List.of(), "mettez 5 kilos");
+                orchestrateur().traiter(client(), enregistree, List.of(), "mettez 5 kilos");
 
         assertThat(resultat.escalade()).isTrue();
         assertThat(resultat.commandeCreee()).isFalse();
@@ -252,16 +274,18 @@ class OrchestrateurIaTest {
     @DisplayName("doit_geocoder_et_enregistrer_un_quartier_inconnu")
     void doit_geocoder_et_enregistrer_un_quartier_inconnu() {
         catalogue();
+        final EtatCommande memoire = new EtatCommande(
+                List.of(new LigneEtatCommande("Attieke", 2)), "Bastos", null, DATE_LIVRAISON,
+                null, StatutEtatCommande.A_CONFIRMER);
         when(geocodingPort.geocoder(anyString()))
                 .thenReturn(Optional.of(new Coordonnees(3.8667, 11.5167)));
         when(quartierRepository.save(any(Quartier.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
-                "\"Attieke\"", "2", "\"Bastos\"", "\"2026-11-19\"", "commande"));
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeNull());
 
-        final ResultatIa resultat =
-                orchestrateur().traiter(client(), List.of(), "2 attieke a Bastos");
+        final ResultatIa resultat = orchestrateur().traiter(client(), memoire, List.of(), "oui");
 
         assertThat(resultat.commandeCreee()).isTrue();
+        assertThat(resultat.escalade()).isFalse();
 
         final ArgumentCaptor<Quartier> captor = ArgumentCaptor.forClass(Quartier.class);
         verify(quartierRepository).save(captor.capture());
@@ -272,35 +296,65 @@ class OrchestrateurIaTest {
     }
 
     @Test
-    @DisplayName("doit_escalader_quand_le_geocodage_ne_trouve_rien")
-    void doit_escalader_quand_le_geocodage_ne_trouve_rien() {
+    @DisplayName("doit_enregistrer_la_commande_meme_sans_resultat_de_geocodage")
+    void doit_enregistrer_la_commande_meme_sans_resultat_de_geocodage() {
         catalogue();
+        final EtatCommande memoire = new EtatCommande(
+                List.of(new LigneEtatCommande("Attieke", 2)), "QuartierFantome", null,
+                DATE_LIVRAISON, null, StatutEtatCommande.A_CONFIRMER);
         when(geocodingPort.geocoder(anyString())).thenReturn(Optional.empty());
-        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
-                "\"Attieke\"", "2", "\"QuartierFantome\"", "\"2026-11-19\"", "commande"));
+        when(quartierRepository.save(any(Quartier.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeNull());
 
-        final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke");
+        final ResultatIa resultat =
+                orchestrateur().traiter(client(), memoire, List.of(), "oui");
 
-        assertThat(resultat.commandeCreee()).isFalse();
-        assertThat(resultat.escalade()).isTrue();
-        verify(quartierRepository, never()).save(any(Quartier.class));
-        verify(commandeService, never()).creer(any(), any(), any(), any(), any(), any());
+        assertThat(resultat.commandeCreee()).isTrue();
+        assertThat(resultat.escalade()).isFalse();
+
+        final ArgumentCaptor<Quartier> captor = ArgumentCaptor.forClass(Quartier.class);
+        verify(quartierRepository).save(captor.capture());
+        assertThat(captor.getValue().getNom()).isEqualTo("QuartierFantome");
+        assertThat(captor.getValue().getLatitude()).isNull();
+        verify(commandeService).creer(any(), any(), any(), any(), any(), isNull());
     }
 
     @Test
-    @DisplayName("doit_escalader_quand_le_geocodage_est_indisponible")
-    void doit_escalader_quand_le_geocodage_est_indisponible() {
+    @DisplayName("doit_enregistrer_la_commande_meme_si_le_geocodage_est_indisponible")
+    void doit_enregistrer_la_commande_meme_si_le_geocodage_est_indisponible() {
         catalogue();
+        final EtatCommande memoire = new EtatCommande(
+                List.of(new LigneEtatCommande("Attieke", 2)), "Bastos", null, DATE_LIVRAISON,
+                null, StatutEtatCommande.A_CONFIRMER);
         when(geocodingPort.geocoder(anyString()))
                 .thenThrow(new AppelExterneException("Google Geocoding a repondu 403 FORBIDDEN"));
-        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeJson(
-                "\"Attieke\"", "2", "\"Bastos\"", "\"2026-11-19\"", "commande"));
+        when(quartierRepository.save(any(Quartier.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeNull());
 
-        final ResultatIa resultat = orchestrateur().traiter(client(), List.of(), "2 attieke a Bastos");
+        final ResultatIa resultat = orchestrateur().traiter(client(), memoire, List.of(), "oui");
+
+        assertThat(resultat.commandeCreee()).isTrue();
+        assertThat(resultat.escalade()).isFalse();
+        verify(commandeService).creer(any(), any(), any(), any(), any(), isNull());
+    }
+
+    @Test
+    @DisplayName("doit_repondre_honnetement_sans_pretendre_reussir_sur_produit_inconnu")
+    void doit_repondre_honnetement_sans_pretendre_reussir_sur_produit_inconnu() {
+        catalogue();
+        final EtatCommande memoire = new EtatCommande(
+                List.of(new LigneEtatCommande("ProduitX", 2)), "Cocody", null, DATE_LIVRAISON,
+                null, StatutEtatCommande.A_CONFIRMER);
+        when(llmPort.generer(anyString(), anyList())).thenReturn(commandeNull());
+
+        final ResultatIa resultat = orchestrateur().traiter(client(), memoire, List.of(), "oui");
 
         assertThat(resultat.commandeCreee()).isFalse();
         assertThat(resultat.escalade()).isTrue();
-        verify(quartierRepository, never()).save(any(Quartier.class));
-        verify(commandeService, never()).creer(any(), any(), any(), any(), any(), any());
+        assertThat(resultat.etat().statut()).isEqualTo(StatutEtatCommande.ECHEC_ENREGISTREMENT);
+        assertThat(resultat.reponseAuClient())
+                .contains("probleme technique")
+                .contains("2 kg de ProduitX")
+                .doesNotContain("enregistree");
     }
 }

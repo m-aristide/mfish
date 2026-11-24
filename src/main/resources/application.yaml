@@ -61,7 +61,7 @@ management:
 # Aucun secret ici : tout est injecte par variable d'environnement (voir .env.example).
 # Les proprietes sont validees au demarrage (voir com.mfish.erp.config).
 app:
-  timezone: ${APP_TIMEZONE:Africa/Abidjan}
+  timezone: ${APP_TIMEZONE:Africa/Douala}
   monnaie:
     devise: ${APP_MONNAIE_DEVISE:FCFA}
   stockage:

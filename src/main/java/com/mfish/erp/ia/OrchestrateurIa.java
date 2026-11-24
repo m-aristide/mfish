@@ -40,9 +40,6 @@ public class OrchestrateurIa {
     /** Contexte geographique ajoute au quartier avant l'appel a Google Geocoding. */
     private static final String CONTEXTE_GEOCODAGE = ", Yaoundé, Cameroun";
 
-    private static final String MESSAGE_ECHEC =
-            "Je n'ai pas pu enregistrer votre commande, le commercant va vous recontacter.";
-
     private static final String MESSAGE_MODIFICATION =
             "Votre commande est deja enregistree. Je transmets votre demande de modification "
                     + "au commercant qui va vous recontacter.";
@@ -111,7 +108,7 @@ public class OrchestrateurIa {
         if (reponse.escalade()) {
             return new ResultatIa(reponse.reponse(), true, false, etat);
         }
-        if (etat.estConfirmee() && intention == Intention.MODIFICATION) {
+        if (etat.estEnregistree() && intention == Intention.MODIFICATION) {
             // Une commande enregistree ne se modifie pas par chat : un humain reprend la main.
             return new ResultatIa(MESSAGE_MODIFICATION, true, false, etat);
         }
@@ -121,41 +118,41 @@ public class OrchestrateurIa {
             return new ResultatIa(texteOu(reponse.reponse(), "Votre commande est annulee."),
                     false, false, fusionne);
         }
-        if (!fusionne.complet()) {
-            // En cours de commande, la question est generee a partir de l'etat : elle ne peut donc
-            // pas redemander une information deja fournie par le client.
-            final boolean enCoursDeCommande = intention == Intention.COMMANDE
-                    || intention == Intention.MODIFICATION;
-            final String reponseFinale = enCoursDeCommande
-                    ? memoire.questionSuivante(fusionne)
-                    : texteOu(reponse.reponse(), memoire.questionSuivante(fusionne));
-            return new ResultatIa(reponseFinale, false, false, fusionne);
-        }
-        if (fusionne.estConfirmee()) {
+
+        // Commande deja enregistree : merci/remerciement bref ou simple recapitulatif.
+        if (fusionne.estEnregistree()) {
             if (memoire.estRemerciementOuSalutation(message)) {
                 return new ResultatIa(memoire.reponsePolie(), false, false, fusionne);
             }
             return new ResultatIa(texteOu(reponse.reponse(), memoire.recapitulatif(fusionne)),
                     false, false, fusionne);
         }
-        if (!commandeDemandee(intention, message)) {
-            return new ResultatIa(memoire.recapitulatifAConfirmer(fusionne), false, false, fusionne);
+
+        // Informations encore incompletes : on repond aux questions directes (prix, etc.) et on
+        // ne demande que les informations reellement manquantes. La reponse naturelle du LLM est
+        // prioritaire ; la question deterministe ne sert que de filet de securite.
+        if (!fusionne.complet()) {
+            final String reponseFinale = texteOu(reponse.reponse(), memoire.questionSuivante(fusionne));
+            return new ResultatIa(reponseFinale, false, false, fusionne);
         }
+
+        // Commande complete : on ne sauvegarde que lorsque le client a explicitement confirme.
+        // Sinon on presente le recapitulatif et on attend sa confirmation.
+        if (!memoire.estConfirmation(message)) {
+            final EtatCommande aConfirmer = fusionne.avecStatut(StatutEtatCommande.A_CONFIRMER);
+            return new ResultatIa(memoire.recapitulatifAConfirmer(aConfirmer), false, false, aConfirmer);
+        }
+
         try {
             creerCommande(client, memoire.versCommandeIa(fusionne), produits, quartiers);
-            final EtatCommande confirmee = fusionne.avecStatut(StatutEtatCommande.CONFIRMEE);
-            return new ResultatIa(texteOu(reponse.reponse(), memoire.recapitulatif(confirmee)),
-                    false, true, confirmee);
-        } catch (ProduitInconnuException | ProduitAmbiguException | QuartierInconnuException e) {
-            return new ResultatIa(MESSAGE_ECHEC, true, false, fusionne);
+            final EtatCommande enregistree = fusionne.avecStatut(StatutEtatCommande.ENREGISTREE);
+            return new ResultatIa(texteOu(reponse.reponse(), memoire.recapitulatif(enregistree)),
+                    false, true, enregistree);
+        } catch (ProduitInconnuException | ProduitAmbiguException e) {
+            LOG.error("Echec de l'enregistrement de la commande (produit introuvable ou ambigu)", e);
+            final EtatCommande echec = fusionne.avecStatut(StatutEtatCommande.ECHEC_ENREGISTREMENT);
+            return new ResultatIa(memoire.messageEchecEnregistrement(echec), true, false, echec);
         }
-    }
-
-    /** Vrai si le client exprime une commande ou valide le recapitulatif propose. */
-    private boolean commandeDemandee(final Intention intention, final String message) {
-        return intention == Intention.COMMANDE
-                || intention == Intention.MODIFICATION
-                || memoire.estConfirmation(message);
     }
 
     private static String texteOu(final String texte, final String defaut) {
@@ -200,8 +197,9 @@ public class OrchestrateurIa {
     /**
      * Associe au client le quartier le plus probable de la base. Si plusieurs quartiers
      * correspondent, prend le premier et retourne une note demandant de preciser le lieu de
-     * livraison. Si le quartier est inconnu, tente de le geocoder puis le persiste (il ne sera
-     * plus jamais redemande). Leve {@link QuartierInconnuException} si le geocodage echoue.
+     * livraison. Si le quartier est inconnu, il est geocode au mieux puis enregistre (il ne sera
+     * plus jamais redemande). Le geocodage n'est jamais bloquant : un quartier valide indique par
+     * le client ne doit pas faire echouer l'enregistrement de la commande.
      */
     private String associerQuartier(final Client client, final CommandeIa commande,
                                     final List<Quartier> quartiers) {
@@ -216,21 +214,19 @@ public class OrchestrateurIa {
     }
 
     /**
-     * Quartier absent de la base : geocodage Google puis enregistrement du nouveau quartier
-     * (avec ses coordonnees) afin qu'il ne soit plus jamais redemande. Retourne {@code null}
-     * (pas d'ambiguite) ; leve {@link QuartierInconnuException} si le geocodage echoue ou
-     * est indisponible.
+     * Quartier absent de la base : on tente un geocodage Google pour le persister avec ses
+     * coordonnees. Si le geocodage echoue ou est indisponible, le quartier est tout de meme
+     * enregistre (sans coordonnees) afin que la commande ne soit jamais bloquee par cette etape
+     * non essentielle. Retourne toujours {@code null} (pas d'ambiguite bloquante).
      */
     private String associerQuartierInconnu(final Client client, final CommandeIa commande) {
         if (commande.quartier() == null || commande.quartier().isBlank()) {
             return null;
         }
         final Optional<Coordonnees> coordonnees = geocoder(commande.quartier());
-        if (coordonnees.isEmpty()) {
-            throw new QuartierInconnuException(commande.quartier());
-        }
-        final Quartier nouveau = new Quartier(commande.quartier(), null,
-                coordonnees.get().latitude(), coordonnees.get().longitude(), 0, true);
+        final Quartier nouveau = coordonnees
+                .map(c -> new Quartier(commande.quartier(), null, c.latitude(), c.longitude(), 0, true))
+                .orElseGet(() -> new Quartier(commande.quartier(), null, null, null, 0, true));
         associer(client, quartierRepository.save(nouveau), commande.adresse());
         return null;
     }
@@ -238,14 +234,14 @@ public class OrchestrateurIa {
     /**
      * Geocode un quartier en ajoutant le contexte geographique. Une indisponibilite du
      * fournisseur (quota, facturation non activee, panne reseau) est traitee comme
-     * « aucun resultat » : la commande est escaladee au commercant plutot que perdue
-     * silencieusement, car le traitement est execute de facon asynchrone.
+     * « aucun resultat » : le quartier sera enregistre sans coordonnees plutot que de faire
+     * echouer la commande.
      */
     private Optional<Coordonnees> geocoder(final String quartier) {
         try {
             return geocodingPort.geocoder(quartier + CONTEXTE_GEOCODAGE);
         } catch (AppelExterneException e) {
-            LOG.warn("Geocodage indisponible, escalade humaine", e);
+            LOG.warn("Geocodage indisponible pour {} : enregistrement sans coordonnees", quartier, e);
             return Optional.empty();
         }
     }

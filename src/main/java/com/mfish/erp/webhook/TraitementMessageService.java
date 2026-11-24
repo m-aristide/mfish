@@ -18,6 +18,8 @@ import com.mfish.erp.whatsapp.webhook.WhatsAppMessage;
 import com.mfish.erp.whatsapp.webhook.WhatsAppMessageRepository;
 import java.time.Clock;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.springframework.stereotype.Service;
 
 /**
@@ -37,6 +39,14 @@ public class TraitementMessageService {
     private final HistoriqueConversation historiqueConversation;
     private final WhatsAppMessageRepository messageRepository;
     private final Clock clock;
+
+    /**
+     * Verrous par conversation : les messages d'une meme conversation sont traites sequentiellement
+     * (le traitement est asynchrone sur le {@code TaskExecutor} a threads virtuels). Cela evite les
+     * conflits de mise a jour de l'etat de commande lorsque le client envoie plusieurs messages
+     * rapproches.
+     */
+    private final ConcurrentMap<String, Object> verrousConversation = new ConcurrentHashMap<>();
 
     public TraitementMessageService(final ConversationRepository conversationRepository,
                                     final ClientRepository clientRepository,
@@ -72,6 +82,16 @@ public class TraitementMessageService {
             return;
         }
 
+        final String conversationId =
+                payload.conversationId() == null ? "" : payload.conversationId();
+        final Object verrou = verrousConversation.computeIfAbsent(conversationId, k -> new Object());
+        synchronized (verrou) {
+            traiterSousVerrou(payload);
+        }
+    }
+
+    /** Traitement d'un message entrant, execute sous verrou par conversation. */
+    private void traiterSousVerrou(final WebhookPayload payload) {
         final Conversation conversation = trouverOuCreer(payload.conversationId());
         if (conversation.getMode() == ModeConversation.HUMAIN) {
             return;

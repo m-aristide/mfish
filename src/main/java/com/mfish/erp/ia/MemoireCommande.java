@@ -4,6 +4,7 @@ import com.mfish.erp.conversation.EtatCommande;
 import com.mfish.erp.conversation.EtatCommandeJson;
 import com.mfish.erp.conversation.LigneEtatCommande;
 import java.text.Normalizer;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +58,16 @@ public class MemoireCommande {
     /** Longueur minimale pour tolerer une faute de frappe (distance de Levenshtein <= 1). */
     private static final int LONGUEUR_MIN_APPROCHANT = 4;
 
+    private final Clock clock;
+
+    /**
+     * Horloge injectee pour resoudre les dates relatives (« demain », « apres-demain ») a partir
+     * de la date reelle dans le fuseau metier (Yaounde).
+     */
+    public MemoireCommande(final Clock clock) {
+        this.clock = clock;
+    }
+
     /**
      * Fusionne la reponse de l'IA dans l'etat courant.
      */
@@ -75,7 +86,7 @@ public class MemoireCommande {
             return etatCourant;
         }
 
-        final LocalDate dateExtraite = EtatCommandeJson.analyserDate(extrait.dateSouhaitee());
+        final LocalDate dateExtraite = dateExtraite(extrait.dateSouhaitee(), message);
         final EtatCommande depart = nouvelleCommande(etatCourant, intention, dateExtraite)
                 ? EtatCommande.vide()
                 : etatCourant;
@@ -171,10 +182,50 @@ public class MemoireCommande {
 
     private static boolean nouvelleCommande(final EtatCommande etat, final Intention intention,
                                             final LocalDate dateExtraite) {
-        return etat.estConfirmee()
+        return etat.estEnregistree()
                 && intention == Intention.COMMANDE
                 && dateExtraite != null
                 && !dateExtraite.equals(etat.dateLivraison());
+    }
+
+    /**
+     * Date extraite par l'IA, completee par une resolution deterministe des expressions relatives
+     * (« aujourd'hui », « demain », « apres-demain ») lorsque le modele n'a pas fourni de date.
+     * La reference est la date reelle dans le fuseau metier.
+     */
+    private LocalDate dateExtraite(final String dateSouhaitee, final String message) {
+        final LocalDate extraite = EtatCommandeJson.analyserDate(dateSouhaitee);
+        if (extraite != null) {
+            return extraite;
+        }
+        final String normalise = normaliser(message);
+        if (normalise.isBlank()) {
+            return null;
+        }
+        final LocalDate aujourdhui = LocalDate.now(clock);
+        if (normalise.contains("apres demain")) {
+            return aujourdhui.plusDays(2);
+        }
+        if (normalise.contains("demain")) {
+            return aujourdhui.plusDays(1);
+        }
+        if (normalise.contains("aujourd hui") || normalise.contains("aujourdhui")) {
+            return aujourdhui;
+        }
+        return null;
+    }
+
+    /**
+     * Message honnete en cas d'echec de l'enregistrement : il conserve et rappelle les
+     * informations deja collectees sans pretendre que la commande a reussi.
+     */
+    public String messageEchecEnregistrement(final EtatCommande etat) {
+        final String resume = etat == null || etat.resume().isBlank()
+                ? ""
+                : " J'ai bien conserve les informations de votre commande : " + etat.resume() + ".";
+        return "Desole, je rencontre un probleme technique pour finaliser votre demande 🙏"
+                + resume
+                + " Je transmets le probleme a notre equipe afin qu'elle puisse vous aider.";
     }
 
     private static List<LigneEtatCommande> fusionnerLigne(final List<LigneEtatCommande> lignes,
