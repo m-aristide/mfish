@@ -15,4 +15,6 @@ public interface ArretTourneeRepository extends JpaRepository<ArretTournee, UUID
      */
     @EntityGraph(attributePaths = {"commande", "commande.client"})
     List<ArretTournee> findByTourneeIdOrderByPositionAsc(UUID tourneeId);
+
+    void deleteAllByTourneeId(UUID tourneeId);
 }

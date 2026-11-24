@@ -1,6 +1,7 @@
 package com.mfish.erp.webhook;
 
 import java.time.Clock;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +20,7 @@ public class WebhookService {
 
     public WebhookService(final EvenementTraiteRepository evenementTraiteRepository,
                           final TraitementMessageService traitementMessageService,
-                          final TaskExecutor taskExecutor,
+                          @Qualifier("applicationTaskExecutor") final TaskExecutor taskExecutor,
                           final Clock clock) {
         this.evenementTraiteRepository = evenementTraiteRepository;
         this.traitementMessageService = traitementMessageService;

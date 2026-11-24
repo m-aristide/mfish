@@ -69,7 +69,6 @@ class TourneeServiceTest {
                 routingPort, commandeService, clock);
         tournee = new Tournee(DATE, StatutTournee.BROUILLON, 3.8, 11.4);
         when(tourneeRepository.findByDate(DATE)).thenReturn(Optional.of(tournee));
-        when(arretRepository.findByTourneeIdOrderByPositionAsc(any())).thenReturn(List.of());
         when(tourneeRepository.save(any(Tournee.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
