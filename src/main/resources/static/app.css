@@ -487,3 +487,27 @@ textarea.saisie {
     box-shadow: var(--ombre);
 }
 
+/* ------------------------------------------------------------------ Tournee */
+.table-tournee {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.table-tournee th,
+.table-tournee td {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid #ddd;
+    vertical-align: middle;
+    text-align: left;
+}
+.table-tournee th {
+    background: #f5f5f5;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.table-tournee .liste-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+

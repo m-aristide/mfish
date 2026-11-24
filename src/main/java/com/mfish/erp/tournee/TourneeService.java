@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,6 +75,7 @@ public class TourneeService {
      * (Re)calcule la tournee du jour.
      */
     @Transactional
+    @Scheduled(cron = "0 */10 * * * ?")
     public Tournee calculer() {
         return calculer(LocalDate.now(clock));
     }
@@ -94,7 +97,7 @@ public class TourneeService {
                         || commande.getStatut() == StatutCommande.EN_COURS)
                 .toList();
 
-        arretRepository.deleteAll(arretRepository.findByTourneeIdOrderByPositionAsc(tournee.getId()));
+        arretRepository.deleteAllByTourneeId(tournee.getId());
 
         if (commandes.isEmpty()) {
             tournee.setStatut(StatutTournee.BROUILLON);
